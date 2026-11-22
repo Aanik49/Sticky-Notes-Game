@@ -1,0 +1,6 @@
+{
+  "name": "Sticky Notes Puzzle",
+  "description": "A tactile unblocking puzzle game where you peel directional sticky notes in the right order across themed walls.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

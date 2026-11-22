@@ -1,0 +1,120 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'APK build variant'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+          - debug
+          - release
+
+jobs:
+  build-apk:
+    name: Build Sticky Notes Puzzle APK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Build web app
+        run: npm run build
+
+      - name: Prepare Capacitor Android project
+        run: |
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
+          npx cap sync android
+          node scripts/configure-android.mjs
+
+      - name: Decode release keystore (optional)
+        id: keystore
+        if: ${{ inputs.build_type == 'release' || startsWith(github.ref, 'refs/tags/v') }}
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release.keystore
+            echo "SIGNING_KEYSTORE_PATH=$(pwd)/android/app/release.keystore" >> $GITHUB_ENV
+            echo "has_keystore=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_keystore=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build Android APK
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          cd android
+          chmod +x gradlew
+          if [ "${{ inputs.build_type }}" = "release" ] || [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            ./gradlew assembleRelease
+          else
+            ./gradlew assembleDebug
+          fi
+
+      - name: Rename APK output
+        id: apk
+        run: |
+          mkdir -p release-apk
+          if [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
+            cp android/app/build/outputs/apk/release/app-release.apk release-apk/sticky-notes-puzzle-release.apk
+            echo "apk_path=release-apk/sticky-notes-puzzle-release.apk" >> $GITHUB_OUTPUT
+            echo "apk_name=sticky-notes-puzzle-release" >> $GITHUB_OUTPUT
+          elif [ -f android/app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+            cp android/app/build/outputs/apk/release/app-release-unsigned.apk release-apk/sticky-notes-puzzle-release-unsigned.apk
+            echo "apk_path=release-apk/sticky-notes-puzzle-release-unsigned.apk" >> $GITHUB_OUTPUT
+            echo "apk_name=sticky-notes-puzzle-release-unsigned" >> $GITHUB_OUTPUT
+          else
+            cp android/app/build/outputs/apk/debug/app-debug.apk release-apk/sticky-notes-puzzle-debug.apk
+            echo "apk_path=release-apk/sticky-notes-puzzle-debug.apk" >> $GITHUB_OUTPUT
+            echo "apk_name=sticky-notes-puzzle-debug" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.apk.outputs.apk_name }}
+          path: ${{ steps.apk.outputs.apk_path }}
+          retention-days: 30
+
+      - name: Attach APK to GitHub Release (on version tags)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.apk.outputs.apk_path }}

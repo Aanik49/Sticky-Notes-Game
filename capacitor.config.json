@@ -1,0 +1,15 @@
+{
+  "appId": "com.stickynotes.puzzle",
+  "appName": "Sticky Notes Puzzle",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "backgroundColor": "#0f172a",
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  }
+}
