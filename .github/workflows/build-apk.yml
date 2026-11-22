@@ -30,7 +30,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
 
       - name: Setup Java 21
         uses: actions/setup-java@v4
@@ -41,12 +40,18 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Accept Android SDK licenses
+        run: |
+          if [ -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
+            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
+          fi
+
       - name: Install dependencies
         run: |
           if [ -f package-lock.json ]; then
-            npm ci
+            npm ci --legacy-peer-deps --no-audit --no-fund
           else
-            npm install
+            npm install --legacy-peer-deps --no-audit --no-fund
           fi
 
       - name: Build web app
@@ -62,7 +67,7 @@ jobs:
 
       - name: Decode release keystore (optional)
         id: keystore
-        if: ${{ inputs.build_type == 'release' || startsWith(github.ref, 'refs/tags/v') }}
+        if: inputs.build_type == 'release' || startsWith(github.ref, 'refs/tags/v')
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
@@ -83,9 +88,9 @@ jobs:
           cd android
           chmod +x gradlew
           if [ "${{ inputs.build_type }}" = "release" ] || [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            ./gradlew assembleRelease
+            ./gradlew assembleRelease --no-daemon
           else
-            ./gradlew assembleDebug
+            ./gradlew assembleDebug --no-daemon
           fi
 
       - name: Rename APK output

@@ -2,7 +2,6 @@
   "appId": "com.stickynotes.puzzle",
   "appName": "Sticky Notes Puzzle",
   "webDir": "dist",
-  "bundledWebRuntime": false,
   "server": {
     "androidScheme": "https"
   },
