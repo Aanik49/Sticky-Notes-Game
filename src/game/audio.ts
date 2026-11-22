@@ -494,62 +494,96 @@ class SoundEngine {
     osc.stop(now + 0.055);
   }
 
+  /**
+   * Joyful, unmistakable positive win fanfare (rising major arpeggio + sparkling finish chord).
+   */
   public playVictory(): void {
     const ctx = this.ensureSfxContext();
     if (!ctx) return;
 
-    const chord = [523.25, 659.25, 783.99, 987.77, 1046.5];
-    chord.forEach((freq, idx) => {
-      const t = ctx.currentTime + idx * 0.075;
+    const arpeggio = [523.25, 659.25, 783.99, 1046.5, 1318.51]; // C5 E5 G5 C6 E6
+    arpeggio.forEach((freq, idx) => {
+      const t = ctx.currentTime + idx * 0.072;
       const osc = ctx.createOscillator();
-      const overtone = ctx.createOscillator();
+      const sparkle = ctx.createOscillator();
       const gain = ctx.createGain();
+      const sparkleGain = ctx.createGain();
 
-      osc.type = 'sine';
+      osc.type = 'triangle';
       osc.frequency.setValueAtTime(freq, t);
-      overtone.type = 'triangle';
-      overtone.frequency.setValueAtTime(freq * 2, t);
-
-      const overGain = ctx.createGain();
-      overGain.gain.value = 0.14;
+      sparkle.type = 'sine';
+      sparkle.frequency.setValueAtTime(freq * 2, t);
+      sparkleGain.gain.value = 0.2;
 
       gain.gain.setValueAtTime(0.001, t);
-      gain.gain.linearRampToValueAtTime(0.16, t + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+      gain.gain.linearRampToValueAtTime(0.2, t + 0.018);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.65);
 
       osc.connect(gain);
-      overtone.connect(overGain);
-      overGain.connect(gain);
+      sparkle.connect(sparkleGain);
+      sparkleGain.connect(gain);
       gain.connect(ctx.destination);
 
       osc.start(t);
-      overtone.start(t);
-      osc.stop(t + 0.62);
-      overtone.stop(t + 0.62);
+      sparkle.start(t);
+      osc.stop(t + 0.68);
+      sparkle.stop(t + 0.68);
+    });
+
+    // Warm celebratory final C major resolution chord
+    const chordStart = ctx.currentTime + 0.34;
+    [523.25, 659.25, 783.99, 1046.5].forEach((freq) => {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, chordStart);
+      g.gain.setValueAtTime(0.001, chordStart);
+      g.gain.linearRampToValueAtTime(0.085, chordStart + 0.04);
+      g.gain.exponentialRampToValueAtTime(0.001, chordStart + 0.95);
+      osc.connect(g);
+      g.connect(ctx.destination);
+      osc.start(chordStart);
+      osc.stop(chordStart + 0.98);
     });
   }
 
+  /**
+   * Unmistakable negative fail cadence (chromatic descending wah-wah + soft low thud).
+   */
   public playFail(): void {
     const ctx = this.ensureSfxContext();
     if (!ctx) return;
 
-    const notes = [392.0, 349.23, 293.66];
-    notes.forEach((freq, idx) => {
-      const t = ctx.currentTime + idx * 0.11;
+    const steps = [
+      { freq: 392.0, endFreq: 376.0, delay: 0.0, dur: 0.22 },   // G4
+      { freq: 369.99, endFreq: 352.0, delay: 0.19, dur: 0.22 }, // F#4
+      { freq: 349.23, endFreq: 332.0, delay: 0.38, dur: 0.24 }, // F4
+      { freq: 311.13, endFreq: 261.63, delay: 0.58, dur: 0.55 },// Eb4 -> C4 droop
+    ];
+
+    steps.forEach(({ freq, endFreq, delay, dur }) => {
+      const t = ctx.currentTime + delay;
       const osc = ctx.createOscillator();
+      const filter = ctx.createBiquadFilter();
       const gain = ctx.createGain();
-      osc.type = 'triangle';
+
+      osc.type = 'sawtooth';
       osc.frequency.setValueAtTime(freq, t);
-      osc.frequency.exponentialRampToValueAtTime(freq * 0.94, t + 0.2);
+      osc.frequency.exponentialRampToValueAtTime(endFreq, t + dur);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(860, t);
+      filter.frequency.exponentialRampToValueAtTime(340, t + dur);
 
       gain.gain.setValueAtTime(0.001, t);
-      gain.gain.linearRampToValueAtTime(0.18, t + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.26);
+      gain.gain.linearRampToValueAtTime(0.15, t + 0.025);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
 
-      osc.connect(gain);
+      osc.connect(filter);
+      filter.connect(gain);
       gain.connect(ctx.destination);
       osc.start(t);
-      osc.stop(t + 0.28);
+      osc.stop(t + dur + 0.03);
     });
   }
 }

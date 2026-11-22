@@ -100,6 +100,7 @@ export interface LevelRecord {
   stars: 1 | 2 | 3;
   bestBumps: number;
   bestTimeSec: number;
+  bestTimeMs?: number;
 }
 
 export interface SavedProgress {
@@ -109,6 +110,7 @@ export interface SavedProgress {
   lastDailyCompletedDate: string | null;
   muted: boolean;
   musicMuted: boolean;
+  timeAttackEnabled: boolean;
   lastTheme: ThemeId;
   endlessBestStreak: number;
   endlessCurrentLevel: number;

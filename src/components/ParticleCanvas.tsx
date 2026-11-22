@@ -220,25 +220,48 @@ export const ParticleCanvas = forwardRef<ParticleCanvasHandle>(function Particle
 
     emitVictory(width, height) {
       const list = particlesRef.current;
-      for (let i = 0; i < 56; i++) {
-        const fromLeft = i % 2 === 0;
-        list.push({
-          kind: 'paper',
-          x: fromLeft ? width * (0.15 + Math.random() * 0.35) : width * (0.5 + Math.random() * 0.35),
-          y: height * (0.15 + Math.random() * 0.25),
-          vx: (Math.random() - 0.5) * 320,
-          vy: -160 - Math.random() * 260,
-          size: 11 + Math.random() * 8,
-          rot: Math.random() * Math.PI * 2,
-          vrot: (Math.random() - 0.5) * 8,
-          color: VICTORY_COLORS[i % VICTORY_COLORS.length],
-          life: 0,
-          maxLife: 1.5 + Math.random() * 1.1,
-          gravity: 340,
-          wobblePhase: Math.random() * Math.PI * 2,
-        });
-      }
+      const spawnWave = (count: number, originYRatio: number) => {
+        for (let i = 0; i < count; i++) {
+          const side = i % 3;
+          const x =
+            side === 0
+              ? width * (0.08 + Math.random() * 0.25)
+              : side === 1
+                ? width * (0.67 + Math.random() * 0.25)
+                : width * (0.3 + Math.random() * 0.4);
+          const vx =
+            side === 0
+              ? 120 + Math.random() * 260
+              : side === 1
+                ? -(120 + Math.random() * 260)
+                : (Math.random() - 0.5) * 320;
+          list.push({
+            kind: i % 5 === 0 ? 'mote' : 'paper',
+            x,
+            y: height * originYRatio + (Math.random() - 0.5) * 60,
+            vx,
+            vy: -240 - Math.random() * 340,
+            size: i % 5 === 0 ? 6 + Math.random() * 4 : 11 + Math.random() * 9,
+            rot: Math.random() * Math.PI * 2,
+            vrot: (Math.random() - 0.5) * 10,
+            color: VICTORY_COLORS[i % VICTORY_COLORS.length],
+            life: 0,
+            maxLife: 1.7 + Math.random() * 1.2,
+            gravity: 340,
+            wobblePhase: Math.random() * Math.PI * 2,
+          });
+        }
+      };
+
+      // Wave 1: Instant celebration pop from both sides + center
+      spawnWave(64, 0.58);
       ensureLoop();
+
+      // Wave 2: Secondary festive shower as the victory panel settles in
+      window.setTimeout(() => {
+        spawnWave(40, 0.35);
+        ensureLoop();
+      }, 260);
     },
   }));
 
@@ -246,7 +269,7 @@ export const ParticleCanvas = forwardRef<ParticleCanvasHandle>(function Particle
     <canvas
       ref={canvasRef}
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 z-50 h-full w-full"
+      className="pointer-events-none fixed inset-0 z-[60] h-full w-full"
     />
   );
 });

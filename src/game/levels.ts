@@ -1,6 +1,8 @@
 import { generateSolvableLevel, verifyLevelSolvable } from './solver';
 import { LevelDef, ThemeId, ThemeMeta } from './types';
 
+export const LEVELS_PER_PACK = 18;
+
 export const THEME_ORDER: ThemeId[] = ['fridge', 'cork', 'drafting', 'midnight'];
 
 export const THEMES: Record<ThemeId, ThemeMeta> = {
@@ -58,358 +60,190 @@ export const THEMES: Record<ThemeId, ThemeMeta> = {
   },
 };
 
+interface PackLevelBlueprint {
+  title: string;
+  difficulty: LevelDef['difficulty'];
+  size: number;
+  notes: number;
+  obstacles: number;
+  doubles: number;
+}
+
+function buildPackLevels(
+  packId: ThemeId,
+  baseSeed: number,
+  handcraftedPrefix: LevelDef[],
+  remainingBlueprints: PackLevelBlueprint[]
+): LevelDef[] {
+  const generated = remainingBlueprints.map((bp, offset) => {
+    const indexInPack = handcraftedPrefix.length + offset;
+    return generateSolvableLevel({
+      seed: baseSeed + (indexInPack + 1) * 137,
+      id: `${packId}-${indexInPack + 1}`,
+      packId,
+      indexInPack,
+      title: bp.title,
+      difficulty: bp.difficulty,
+      rows: bp.size,
+      cols: bp.size,
+      targetNotes: bp.notes,
+      obstacleCount: bp.obstacles,
+      doubleCount: bp.doubles,
+    });
+  });
+
+  return [...handcraftedPrefix, ...generated];
+}
+
 /**
- * 24 curated, progressively challenging levels across 4 themed packs (6 per pack).
- * Early levels are handcrafted for crystal-clear onboarding; deeper levels use
- * deterministic seeded reverse-peel construction with obstacles & double-stacked notes.
+ * 72 curated, progressively challenging levels across 4 themed packs (18 levels per pack).
+ * Every level is verified 100% deadlock-free at initialization.
  */
 const RAW_PACK_LEVELS: Record<ThemeId, LevelDef[]> = {
-  fridge: [
-    // Level 1-1: Instant clarity 3x3 warmup
-    {
-      id: 'fridge-1',
-      packId: 'fridge',
-      indexInPack: 0,
-      title: 'Morning Coffee',
-      difficulty: 'Warmup',
-      rows: 3,
-      cols: 3,
-      notes: [
-        { r: 0, c: 1, dir: 'R', color: 'canary' },
-        { r: 0, c: 2, dir: 'R', color: 'coral' },
-        { r: 1, c: 1, dir: 'U', color: 'sky' },
-        { r: 1, c: 2, dir: 'L', color: 'mint' },
-        { r: 2, c: 0, dir: 'R', color: 'apricot' },
-        { r: 2, c: 1, dir: 'U', color: 'canary' },
-      ],
-    },
-    // Level 1-2: 3x3 full-wall interlocking chain
-    {
-      id: 'fridge-2',
-      packId: 'fridge',
-      indexInPack: 1,
-      title: 'Milk & Eggs',
-      difficulty: 'Warmup',
-      rows: 3,
-      cols: 3,
-      notes: [
-        { r: 0, c: 0, dir: 'R', color: 'mint' },
-        { r: 0, c: 1, dir: 'D', color: 'canary' },
-        { r: 0, c: 2, dir: 'U', color: 'sky' },
-        { r: 1, c: 0, dir: 'U', color: 'coral' },
-        { r: 1, c: 1, dir: 'R', color: 'apricot' },
-        { r: 1, c: 2, dir: 'U', color: 'lavender' },
-        { r: 2, c: 0, dir: 'L', color: 'sky' },
-        { r: 2, c: 1, dir: 'L', color: 'canary' },
-        { r: 2, c: 2, dir: 'L', color: 'coral' },
-      ],
-    },
-    // Level 1-3: 4x4 spiral cross
-    {
-      id: 'fridge-3',
-      packId: 'fridge',
-      indexInPack: 2,
-      title: 'Grocery Run',
-      difficulty: 'Clever',
-      rows: 4,
-      cols: 4,
-      notes: [
-        { r: 0, c: 1, dir: 'U', color: 'sky' },
-        { r: 0, c: 2, dir: 'L', color: 'canary' },
-        { r: 1, c: 0, dir: 'L', color: 'coral' },
-        { r: 1, c: 1, dir: 'L', color: 'mint' },
-        { r: 1, c: 2, dir: 'U', color: 'apricot' },
-        { r: 1, c: 3, dir: 'R', color: 'canary' },
-        { r: 2, c: 1, dir: 'U', color: 'coral' },
-        { r: 2, c: 2, dir: 'R', color: 'sky' },
-        { r: 3, c: 1, dir: 'D', color: 'apricot' },
-        { r: 3, c: 2, dir: 'L', color: 'mint' },
-      ],
-    },
-    // Level 1-4: 4x4 with first ceramic magnet obstacle!
-    generateSolvableLevel({
-      seed: 1041,
-      id: 'fridge-4',
-      packId: 'fridge',
-      indexInPack: 3,
-      title: 'Magnet Catch',
-      difficulty: 'Clever',
-      rows: 4,
-      cols: 4,
-      targetNotes: 12,
-      obstacleCount: 1,
-    }),
-    // Level 1-5: 4x4 denser weave
-    generateSolvableLevel({
-      seed: 1057,
-      id: 'fridge-5',
-      packId: 'fridge',
-      indexInPack: 4,
-      title: 'Dinner Recipes',
-      difficulty: 'Tricky',
-      rows: 4,
-      cols: 4,
-      targetNotes: 14,
-      obstacleCount: 1,
-    }),
-    // Level 1-6: 5x5 fridge finale
-    generateSolvableLevel({
-      seed: 1069,
-      id: 'fridge-6',
-      packId: 'fridge',
-      indexInPack: 5,
-      title: 'Sunday Pantry',
-      difficulty: 'Tricky',
-      rows: 5,
-      cols: 5,
-      targetNotes: 17,
-      obstacleCount: 2,
-    }),
-  ],
+  fridge: buildPackLevels(
+    'fridge',
+    1000,
+    [
+      {
+        id: 'fridge-1',
+        packId: 'fridge',
+        indexInPack: 0,
+        title: 'Morning Coffee',
+        difficulty: 'Warmup',
+        rows: 3,
+        cols: 3,
+        notes: [
+          { r: 0, c: 1, dir: 'R', color: 'canary' },
+          { r: 0, c: 2, dir: 'R', color: 'coral' },
+          { r: 1, c: 1, dir: 'U', color: 'sky' },
+          { r: 1, c: 2, dir: 'L', color: 'mint' },
+          { r: 2, c: 0, dir: 'R', color: 'apricot' },
+          { r: 2, c: 1, dir: 'U', color: 'canary' },
+        ],
+      },
+      {
+        id: 'fridge-2',
+        packId: 'fridge',
+        indexInPack: 1,
+        title: 'Milk & Eggs',
+        difficulty: 'Warmup',
+        rows: 3,
+        cols: 3,
+        notes: [
+          { r: 0, c: 0, dir: 'R', color: 'mint' },
+          { r: 0, c: 1, dir: 'D', color: 'canary' },
+          { r: 0, c: 2, dir: 'U', color: 'sky' },
+          { r: 1, c: 0, dir: 'U', color: 'coral' },
+          { r: 1, c: 1, dir: 'R', color: 'apricot' },
+          { r: 1, c: 2, dir: 'U', color: 'lavender' },
+          { r: 2, c: 0, dir: 'L', color: 'sky' },
+          { r: 2, c: 1, dir: 'L', color: 'canary' },
+          { r: 2, c: 2, dir: 'L', color: 'coral' },
+        ],
+      },
+      {
+        id: 'fridge-3',
+        packId: 'fridge',
+        indexInPack: 2,
+        title: 'Grocery Run',
+        difficulty: 'Clever',
+        rows: 4,
+        cols: 4,
+        notes: [
+          { r: 0, c: 1, dir: 'U', color: 'sky' },
+          { r: 0, c: 2, dir: 'L', color: 'canary' },
+          { r: 1, c: 0, dir: 'L', color: 'coral' },
+          { r: 1, c: 1, dir: 'L', color: 'mint' },
+          { r: 1, c: 2, dir: 'U', color: 'apricot' },
+          { r: 1, c: 3, dir: 'R', color: 'canary' },
+          { r: 2, c: 1, dir: 'U', color: 'coral' },
+          { r: 2, c: 2, dir: 'R', color: 'sky' },
+          { r: 3, c: 1, dir: 'D', color: 'apricot' },
+          { r: 3, c: 2, dir: 'L', color: 'mint' },
+        ],
+      },
+    ],
+    [
+      { title: 'Magnet Catch', difficulty: 'Clever', size: 4, notes: 12, obstacles: 1, doubles: 0 },
+      { title: 'Dinner Recipes', difficulty: 'Clever', size: 4, notes: 13, obstacles: 1, doubles: 0 },
+      { title: 'Sunday Pantry', difficulty: 'Clever', size: 4, notes: 14, obstacles: 1, doubles: 1 },
+      { title: 'Fresh Berries', difficulty: 'Tricky', size: 4, notes: 14, obstacles: 2, doubles: 1 },
+      { title: 'Lunchbox Note', difficulty: 'Tricky', size: 5, notes: 16, obstacles: 1, doubles: 1 },
+      { title: 'Spice Rack', difficulty: 'Tricky', size: 5, notes: 17, obstacles: 2, doubles: 1 },
+      { title: 'Tea Kettle', difficulty: 'Tricky', size: 5, notes: 18, obstacles: 2, doubles: 2 },
+      { title: 'Farmers Market', difficulty: 'Tricky', size: 5, notes: 19, obstacles: 2, doubles: 2 },
+      { title: 'Baking Sheet', difficulty: 'Expert', size: 5, notes: 20, obstacles: 2, doubles: 2 },
+      { title: 'Leftover Labels', difficulty: 'Expert', size: 5, notes: 21, obstacles: 2, doubles: 3 },
+      { title: 'Family Calendar', difficulty: 'Expert', size: 5, notes: 21, obstacles: 3, doubles: 3 },
+      { title: 'Brunch Prep', difficulty: 'Expert', size: 6, notes: 24, obstacles: 2, doubles: 2 },
+      { title: 'Potluck List', difficulty: 'Expert', size: 6, notes: 26, obstacles: 3, doubles: 3 },
+      { title: 'Holiday Menu', difficulty: 'Master', size: 6, notes: 27, obstacles: 3, doubles: 4 },
+      { title: 'Clean Fridge', difficulty: 'Master', size: 6, notes: 29, obstacles: 3, doubles: 4 },
+    ]
+  ),
 
-  cork: [
-    // Pack 2 introduces more pushpin obstacles & tight classroom pinboards
-    generateSolvableLevel({
-      seed: 2011,
-      id: 'cork-1',
-      packId: 'cork',
-      indexInPack: 0,
-      title: 'Homeroom Bell',
-      difficulty: 'Clever',
-      rows: 4,
-      cols: 4,
-      targetNotes: 11,
-      obstacleCount: 1,
-    }),
-    generateSolvableLevel({
-      seed: 2029,
-      id: 'cork-2',
-      packId: 'cork',
-      indexInPack: 1,
-      title: 'Club Flyers',
-      difficulty: 'Clever',
-      rows: 4,
-      cols: 4,
-      targetNotes: 13,
-      obstacleCount: 2,
-    }),
-    generateSolvableLevel({
-      seed: 2037,
-      id: 'cork-3',
-      packId: 'cork',
-      indexInPack: 2,
-      title: 'Science Fair',
-      difficulty: 'Tricky',
-      rows: 4,
-      cols: 4,
-      targetNotes: 14,
-      obstacleCount: 1,
-      doubleCount: 1,
-    }),
-    generateSolvableLevel({
-      seed: 2043,
-      id: 'cork-4',
-      packId: 'cork',
-      indexInPack: 3,
-      title: 'Hallway Notices',
-      difficulty: 'Tricky',
-      rows: 5,
-      cols: 5,
-      targetNotes: 17,
-      obstacleCount: 2,
-      doubleCount: 1,
-    }),
-    generateSolvableLevel({
-      seed: 2059,
-      id: 'cork-5',
-      packId: 'cork',
-      indexInPack: 4,
-      title: 'Exam Schedule',
-      difficulty: 'Expert',
-      rows: 5,
-      cols: 5,
-      targetNotes: 19,
-      obstacleCount: 2,
-      doubleCount: 2,
-    }),
-    generateSolvableLevel({
-      seed: 2063,
-      id: 'cork-6',
-      packId: 'cork',
-      indexInPack: 5,
-      title: 'Faculty Wall',
-      difficulty: 'Expert',
-      rows: 5,
-      cols: 5,
-      targetNotes: 21,
-      obstacleCount: 2,
-      doubleCount: 2,
-    }),
-  ],
+  cork: buildPackLevels('cork', 2000, [], [
+    { title: 'Homeroom Bell', difficulty: 'Warmup', size: 4, notes: 10, obstacles: 1, doubles: 0 },
+    { title: 'Club Flyers', difficulty: 'Warmup', size: 4, notes: 12, obstacles: 1, doubles: 0 },
+    { title: 'Hall Pass', difficulty: 'Clever', size: 4, notes: 13, obstacles: 2, doubles: 0 },
+    { title: 'Science Fair', difficulty: 'Clever', size: 4, notes: 14, obstacles: 1, doubles: 1 },
+    { title: 'Book Report', difficulty: 'Clever', size: 4, notes: 14, obstacles: 2, doubles: 1 },
+    { title: 'Art Showcase', difficulty: 'Clever', size: 5, notes: 16, obstacles: 2, doubles: 1 },
+    { title: 'Hallway Notices', difficulty: 'Tricky', size: 5, notes: 17, obstacles: 2, doubles: 1 },
+    { title: 'Choir Tryouts', difficulty: 'Tricky', size: 5, notes: 18, obstacles: 2, doubles: 2 },
+    { title: 'Field Trip', difficulty: 'Tricky', size: 5, notes: 19, obstacles: 2, doubles: 2 },
+    { title: 'Study Group', difficulty: 'Tricky', size: 5, notes: 20, obstacles: 2, doubles: 2 },
+    { title: 'Exam Schedule', difficulty: 'Expert', size: 5, notes: 20, obstacles: 3, doubles: 2 },
+    { title: 'Faculty Wall', difficulty: 'Expert', size: 5, notes: 21, obstacles: 2, doubles: 3 },
+    { title: 'Varsity Roster', difficulty: 'Expert', size: 5, notes: 22, obstacles: 2, doubles: 3 },
+    { title: 'Drama Auditions', difficulty: 'Expert', size: 6, notes: 24, obstacles: 3, doubles: 2 },
+    { title: 'Honor Roll', difficulty: 'Expert', size: 6, notes: 26, obstacles: 3, doubles: 3 },
+    { title: 'Library Due', difficulty: 'Master', size: 6, notes: 27, obstacles: 3, doubles: 4 },
+    { title: 'Yearbook Proofs', difficulty: 'Master', size: 6, notes: 28, obstacles: 3, doubles: 4 },
+    { title: 'Graduation Day', difficulty: 'Master', size: 6, notes: 30, obstacles: 4, doubles: 5 },
+  ]),
 
-  drafting: [
-    // Pack 3: Architect's Drafting Desk — precision stacks & tight blueprint corridors
-    generateSolvableLevel({
-      seed: 3013,
-      id: 'drafting-1',
-      packId: 'drafting',
-      indexInPack: 0,
-      title: 'Floor Plan A',
-      difficulty: 'Clever',
-      rows: 4,
-      cols: 4,
-      targetNotes: 13,
-      obstacleCount: 1,
-      doubleCount: 2,
-    }),
-    generateSolvableLevel({
-      seed: 3027,
-      id: 'drafting-2',
-      packId: 'drafting',
-      indexInPack: 1,
-      title: 'Scale Elevations',
-      difficulty: 'Tricky',
-      rows: 5,
-      cols: 5,
-      targetNotes: 17,
-      obstacleCount: 2,
-      doubleCount: 2,
-    }),
-    generateSolvableLevel({
-      seed: 3039,
-      id: 'drafting-3',
-      packId: 'drafting',
-      indexInPack: 2,
-      title: 'Section Cut',
-      difficulty: 'Tricky',
-      rows: 5,
-      cols: 5,
-      targetNotes: 19,
-      obstacleCount: 3,
-      doubleCount: 2,
-    }),
-    generateSolvableLevel({
-      seed: 3041,
-      id: 'drafting-4',
-      packId: 'drafting',
-      indexInPack: 3,
-      title: 'Cantilever Study',
-      difficulty: 'Expert',
-      rows: 5,
-      cols: 5,
-      targetNotes: 20,
-      obstacleCount: 2,
-      doubleCount: 3,
-    }),
-    generateSolvableLevel({
-      seed: 3055,
-      id: 'drafting-5',
-      packId: 'drafting',
-      indexInPack: 4,
-      title: 'Grid Masterplan',
-      difficulty: 'Expert',
-      rows: 6,
-      cols: 6,
-      targetNotes: 24,
-      obstacleCount: 3,
-      doubleCount: 3,
-    }),
-    generateSolvableLevel({
-      seed: 3067,
-      id: 'drafting-6',
-      packId: 'drafting',
-      indexInPack: 5,
-      title: 'Final Blueprint',
-      difficulty: 'Master',
-      rows: 6,
-      cols: 6,
-      targetNotes: 27,
-      obstacleCount: 3,
-      doubleCount: 4,
-    }),
-  ],
+  drafting: buildPackLevels('drafting', 3000, [], [
+    { title: 'Floor Plan A', difficulty: 'Clever', size: 4, notes: 12, obstacles: 1, doubles: 1 },
+    { title: 'Site Survey', difficulty: 'Clever', size: 4, notes: 13, obstacles: 1, doubles: 2 },
+    { title: 'Compass Grid', difficulty: 'Clever', size: 4, notes: 14, obstacles: 2, doubles: 2 },
+    { title: 'Scale Elevations', difficulty: 'Tricky', size: 5, notes: 16, obstacles: 2, doubles: 2 },
+    { title: 'Section Cut', difficulty: 'Tricky', size: 5, notes: 17, obstacles: 2, doubles: 2 },
+    { title: 'North Facade', difficulty: 'Tricky', size: 5, notes: 18, obstacles: 3, doubles: 2 },
+    { title: 'Cantilever Study', difficulty: 'Tricky', size: 5, notes: 19, obstacles: 2, doubles: 3 },
+    { title: 'Beam Load', difficulty: 'Tricky', size: 5, notes: 20, obstacles: 2, doubles: 3 },
+    { title: 'Atrium Sketch', difficulty: 'Expert', size: 5, notes: 21, obstacles: 3, doubles: 3 },
+    { title: 'Courtyard Axis', difficulty: 'Expert', size: 5, notes: 21, obstacles: 3, doubles: 4 },
+    { title: 'Stairwell Core', difficulty: 'Expert', size: 6, notes: 24, obstacles: 2, doubles: 3 },
+    { title: 'Grid Masterplan', difficulty: 'Expert', size: 6, notes: 25, obstacles: 3, doubles: 3 },
+    { title: 'Glass Pavilion', difficulty: 'Expert', size: 6, notes: 26, obstacles: 3, doubles: 4 },
+    { title: 'Bridge Truss', difficulty: 'Expert', size: 6, notes: 27, obstacles: 3, doubles: 4 },
+    { title: 'Roof Garden', difficulty: 'Master', size: 6, notes: 28, obstacles: 3, doubles: 4 },
+    { title: 'Urban Plaza', difficulty: 'Master', size: 6, notes: 29, obstacles: 4, doubles: 4 },
+    { title: 'Tower Spire', difficulty: 'Master', size: 6, notes: 30, obstacles: 3, doubles: 5 },
+    { title: 'Final Blueprint', difficulty: 'Master', size: 6, notes: 31, obstacles: 4, doubles: 5 },
+  ]),
 
-  midnight: [
-    // Pack 4: Midnight Studio — deep layered brainstorm walls
-    generateSolvableLevel({
-      seed: 4019,
-      id: 'midnight-1',
-      packId: 'midnight',
-      indexInPack: 0,
-      title: 'Desk Lamp On',
-      difficulty: 'Tricky',
-      rows: 5,
-      cols: 5,
-      targetNotes: 18,
-      obstacleCount: 2,
-      doubleCount: 2,
-    }),
-    generateSolvableLevel({
-      seed: 4023,
-      id: 'midnight-2',
-      packId: 'midnight',
-      indexInPack: 1,
-      title: 'Sprint Backlog',
-      difficulty: 'Tricky',
-      rows: 5,
-      cols: 5,
-      targetNotes: 20,
-      obstacleCount: 2,
-      doubleCount: 3,
-    }),
-    generateSolvableLevel({
-      seed: 4031,
-      id: 'midnight-3',
-      packId: 'midnight',
-      indexInPack: 2,
-      title: 'Moodboard Stack',
-      difficulty: 'Expert',
-      rows: 5,
-      cols: 5,
-      targetNotes: 21,
-      obstacleCount: 3,
-      doubleCount: 4,
-    }),
-    generateSolvableLevel({
-      seed: 4049,
-      id: 'midnight-4',
-      packId: 'midnight',
-      indexInPack: 3,
-      title: 'Two AM Spark',
-      difficulty: 'Expert',
-      rows: 6,
-      cols: 6,
-      targetNotes: 25,
-      obstacleCount: 3,
-      doubleCount: 4,
-    }),
-    generateSolvableLevel({
-      seed: 4057,
-      id: 'midnight-5',
-      packId: 'midnight',
-      indexInPack: 4,
-      title: 'Deadline Rush',
-      difficulty: 'Master',
-      rows: 6,
-      cols: 6,
-      targetNotes: 28,
-      obstacleCount: 4,
-      doubleCount: 5,
-    }),
-    generateSolvableLevel({
-      seed: 4073,
-      id: 'midnight-6',
-      packId: 'midnight',
-      indexInPack: 5,
-      title: 'Clean Slate',
-      difficulty: 'Master',
-      rows: 6,
-      cols: 6,
-      targetNotes: 30,
-      obstacleCount: 3,
-      doubleCount: 6,
-    }),
-  ],
+  midnight: buildPackLevels('midnight', 4000, [], [
+    { title: 'Desk Lamp On', difficulty: 'Clever', size: 4, notes: 13, obstacles: 1, doubles: 2 },
+    { title: 'First Draft', difficulty: 'Clever', size: 4, notes: 14, obstacles: 2, doubles: 2 },
+    { title: 'Late Espresso', difficulty: 'Tricky', size: 5, notes: 17, obstacles: 2, doubles: 2 },
+    { title: 'Sprint Backlog', difficulty: 'Tricky', size: 5, notes: 18, obstacles: 2, doubles: 3 },
+    { title: 'Color Swatches', difficulty: 'Tricky', size: 5, notes: 19, obstacles: 2, doubles: 3 },
+    { title: 'Moodboard Stack', difficulty: 'Tricky', size: 5, notes: 20, obstacles: 3, doubles: 3 },
+    { title: 'Wireframe Flow', difficulty: 'Expert', size: 5, notes: 21, obstacles: 3, doubles: 4 },
+    { title: 'Neon Post-Its', difficulty: 'Expert', size: 5, notes: 21, obstacles: 3, doubles: 4 },
+    { title: 'Midnight Tea', difficulty: 'Expert', size: 6, notes: 24, obstacles: 3, doubles: 3 },
+    { title: 'Two AM Spark', difficulty: 'Expert', size: 6, notes: 25, obstacles: 3, doubles: 4 },
+    { title: 'Bug Triage', difficulty: 'Expert', size: 6, notes: 26, obstacles: 3, doubles: 4 },
+    { title: 'Feature Freeze', difficulty: 'Expert', size: 6, notes: 27, obstacles: 4, doubles: 4 },
+    { title: 'Soundcheck', difficulty: 'Master', size: 6, notes: 28, obstacles: 3, doubles: 5 },
+    { title: 'Release Notes', difficulty: 'Master', size: 6, notes: 28, obstacles: 4, doubles: 5 },
+    { title: 'Deadline Rush', difficulty: 'Master', size: 6, notes: 29, obstacles: 4, doubles: 5 },
+    { title: 'Golden Master', difficulty: 'Master', size: 6, notes: 30, obstacles: 4, doubles: 5 },
+    { title: 'Dawn Glow', difficulty: 'Master', size: 6, notes: 31, obstacles: 3, doubles: 6 },
+    { title: 'Clean Slate', difficulty: 'Master', size: 6, notes: 32, obstacles: 4, doubles: 6 },
+  ]),
 };
 
 // Verify every single curated level at module init (guaranteed zero deadlocks)
@@ -418,7 +252,6 @@ export const PACK_LEVELS: Record<ThemeId, LevelDef[]> = Object.fromEntries(
     packId,
     RAW_PACK_LEVELS[packId].map((lvl, idx) => {
       if (verifyLevelSolvable(lvl)) return lvl;
-      // Fallback to verified procedural level with same parameters if ever needed
       return generateSolvableLevel({
         seed: 9000 + idx * 77 + packId.charCodeAt(0) * 13,
         id: lvl.id,
@@ -439,7 +272,11 @@ export function createEndlessLevel(endlessNumber: number, themeId: ThemeId): Lev
   const tier = Math.min(4, Math.floor((endlessNumber - 1) / 3));
   const size = tier === 0 ? 4 : tier <= 2 ? 5 : 6;
   const targetNotes =
-    size === 4 ? 12 + (endlessNumber % 3) : size === 5 ? 17 + (endlessNumber % 4) : 24 + (endlessNumber % 5);
+    size === 4
+      ? 12 + (endlessNumber % 3)
+      : size === 5
+        ? 17 + (endlessNumber % 4)
+        : 24 + (endlessNumber % 5);
   const obstacleCount = tier === 0 ? 1 : tier <= 2 ? 2 : 3;
   const doubleCount = tier === 0 ? 0 : Math.min(5, tier + 1);
   const difficulties: LevelDef['difficulty'][] = ['Clever', 'Tricky', 'Expert', 'Master', 'Master'];
@@ -461,9 +298,6 @@ export function createEndlessLevel(endlessNumber: number, themeId: ThemeId): Lev
   });
 }
 
-/**
- * Returns local calendar date string YYYY-MM-DD so each player gets a fresh daily wall at midnight.
- */
 export function getTodayDateKey(date: Date = new Date()): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -482,9 +316,6 @@ export function formatDailyDateLabel(dateKey: string): string {
   });
 }
 
-/**
- * Deterministic 32-bit FNV-1a hash for YYYY-MM-DD daily seed stability.
- */
 function hashDateKey(dateKey: string): number {
   let h = 2166136261;
   for (let i = 0; i < dateKey.length; i++) {
@@ -494,10 +325,6 @@ function hashDateKey(dateKey: string): number {
   return h >>> 0;
 }
 
-/**
- * Generates a unique, guaranteed-solvable Daily Puzzle for the given calendar date.
- * Rotates theme packs, board sizes (5x5 on weekdays, 6x6 on weekends), obstacles, and stacks.
- */
 export function createDailyLevel(dateKey: string = getTodayDateKey()): LevelDef {
   const hash = hashDateKey(`sticky-notes-daily:${dateKey}`);
   const [y, m, d] = dateKey.split('-').map(Number);

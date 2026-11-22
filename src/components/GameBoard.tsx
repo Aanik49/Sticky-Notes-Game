@@ -76,7 +76,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
       {/* Main Responsive Square Board */}
       <div
-        className={`${theme.boardClass} relative aspect-square w-[min(calc(100vw-28px),calc(100dvh-204px),560px)] min-w-[272px] rounded-[24px] transition-shadow duration-300`}
+        className={`${theme.boardClass} relative aspect-square w-[min(calc(100vw-28px),calc(100dvh-236px),540px)] min-w-[264px] rounded-[24px] transition-shadow duration-300`}
       >
         {/* Corner Hardware Details for Cork Board */}
         {theme.id === 'cork' && (

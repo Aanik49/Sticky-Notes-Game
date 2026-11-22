@@ -294,18 +294,8 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             })}
           </div>
 
-          {/* Primary Play Action */}
-          <button
-            type="button"
-            onClick={() => onStartPack(selectedTheme)}
-            className="font-display mb-2.5 flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-2xl bg-slate-900 px-6 py-3.5 text-lg font-bold text-amber-300 shadow-[0_6px_0_#020617,0_14px_28px_-6px_rgba(15,23,42,0.38)] transition hover:bg-slate-800 active:translate-y-1 active:shadow-[0_2px_0_#020617] whitespace-nowrap"
-          >
-            <Play className="h-5 w-5 fill-current" />
-            <span>Play {theme.shortName}</span>
-          </button>
-
-          {/* Secondary Modes Row: Daily Puzzle + Endless Wall */}
-          <div className="grid w-full grid-cols-5 gap-2.5">
+          {/* Daily Puzzle + Endless Wall Row (Positioned above Play button) */}
+          <div className="mb-2.5 grid w-full grid-cols-5 gap-2.5">
             <button
               type="button"
               onClick={onStartDaily}
@@ -367,6 +357,16 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
               <span>Endless</span>
             </button>
           </div>
+
+          {/* Primary Play Action */}
+          <button
+            type="button"
+            onClick={() => onStartPack(selectedTheme)}
+            className="font-display flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-2xl bg-slate-900 px-6 py-3.5 text-lg font-bold text-amber-300 shadow-[0_6px_0_#020617,0_14px_28px_-6px_rgba(15,23,42,0.38)] transition hover:bg-slate-800 active:translate-y-1 active:shadow-[0_2px_0_#020617] whitespace-nowrap"
+          >
+            <Play className="h-5 w-5 fill-current" />
+            <span>Play {theme.shortName}</span>
+          </button>
         </div>
 
         {/* Right Zone: Live Interactive Hero Wall (Try Peeling Right on the Title Screen!) */}
@@ -441,7 +441,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
 
       {/* Single Flat Control-Hint Footer Line */}
       <footer className="z-20 shrink-0 pb-4 text-center text-xs font-medium opacity-65">
-        Tap or Click to Peel · Enter Start · Z Undo · H Hint · Esc Pause
+        Tap or Click to Peel
       </footer>
     </div>
   );

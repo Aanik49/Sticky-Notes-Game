@@ -6,6 +6,7 @@ import {
   Pause,
   RotateCcw,
   Star,
+  Timer,
   Undo2,
   Volume2,
   VolumeX,
@@ -13,11 +14,13 @@ import {
 import { GameBoard, PeelingGhost } from './components/GameBoard';
 import {
   FailedModal,
+  formatStopwatchMs,
   LevelPickerModal,
   PauseModal,
   VictoryModal,
 } from './components/Modals';
 import { ParticleCanvas, ParticleCanvasHandle } from './components/ParticleCanvas';
+import { SplashScreen } from './components/SplashScreen';
 import { TitleScreen } from './components/TitleScreen';
 import { sound } from './game/audio';
 import {
@@ -72,6 +75,8 @@ export default function App() {
     return loaded;
   });
 
+  const [showSplash, setShowSplash] = useState(true);
+  const [boardTransition, setBoardTransition] = useState<'idle' | 'out' | 'in'>('idle');
   const [screen, setScreen] = useState<GameScreen>('TITLE_MENU');
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>(progress.lastTheme);
   const [currentLevel, setCurrentLevel] = useState<LevelDef>(
@@ -97,13 +102,28 @@ export default function App() {
   const comboClearTimerRef = useRef<number | null>(null);
   const blockerTimerRef = useRef<number | null>(null);
   const endModalTimerRef = useRef<number | null>(null);
+  const transitionTimerRef = useRef<number | null>(null);
   const levelStartMsRef = useRef<number>(Date.now());
+  const accumulatedMsRef = useRef<number>(0);
+  const runStartMsRef = useRef<number | null>(null);
+  const [liveElapsedMs, setLiveElapsedMs] = useState(0);
   const [victoryStats, setVictoryStats] = useState<{
     stars: 1 | 2 | 3;
     elapsedSec: number;
+    elapsedMs: number;
+    bestTimeMs: number | null;
+    isNewBestTime: boolean;
     sheets: number;
     maxCombo: number;
-  }>({ stars: 3, elapsedSec: 0, sheets: 0, maxCombo: 1 });
+  }>({
+    stars: 3,
+    elapsedSec: 0,
+    elapsedMs: 0,
+    bestTimeMs: null,
+    isNewBestTime: false,
+    sheets: 0,
+    maxCombo: 1,
+  });
   const [failedElapsedSec, setFailedElapsedSec] = useState(0);
 
   // Keyboard navigation focus cursor
@@ -151,7 +171,52 @@ export default function App() {
     };
   }, []);
 
-  const startLevel = useCallback((level: LevelDef) => {
+  // Accurate pause-aware stopwatch for Time Attack mode
+  const isTimerRunning =
+    screen === 'PLAYING' && !showLevelPicker && boardTransition !== 'out';
+
+  useEffect(() => {
+    if (!isTimerRunning) {
+      if (runStartMsRef.current !== null) {
+        accumulatedMsRef.current += performance.now() - runStartMsRef.current;
+        runStartMsRef.current = null;
+        setLiveElapsedMs(accumulatedMsRef.current);
+      }
+      return;
+    }
+
+    runStartMsRef.current = performance.now();
+    if (!progress.timeAttackEnabled) {
+      return () => {
+        if (runStartMsRef.current !== null) {
+          accumulatedMsRef.current += performance.now() - runStartMsRef.current;
+          runStartMsRef.current = null;
+        }
+      };
+    }
+
+    const interval = window.setInterval(() => {
+      if (runStartMsRef.current !== null) {
+        setLiveElapsedMs(accumulatedMsRef.current + (performance.now() - runStartMsRef.current));
+      }
+    }, 60);
+
+    return () => {
+      window.clearInterval(interval);
+      if (runStartMsRef.current !== null) {
+        accumulatedMsRef.current += performance.now() - runStartMsRef.current;
+        runStartMsRef.current = null;
+      }
+    };
+  }, [isTimerRunning, progress.timeAttackEnabled]);
+
+  const getCurrentElapsedMs = useCallback(() => {
+    const runningDelta =
+      runStartMsRef.current !== null ? performance.now() - runStartMsRef.current : 0;
+    return Math.max(100, Math.round(accumulatedMsRef.current + runningDelta));
+  }, []);
+
+  const applyLevelImmediate = useCallback((level: LevelDef) => {
     if (comboClearTimerRef.current) window.clearTimeout(comboClearTimerRef.current);
     if (blockerTimerRef.current) window.clearTimeout(blockerTimerRef.current);
     if (endModalTimerRef.current) window.clearTimeout(endModalTimerRef.current);
@@ -170,6 +235,9 @@ export default function App() {
     setAnimateSpawn(true);
     setLevelInstanceKey(`${level.id}-${Date.now()}`);
     levelStartMsRef.current = Date.now();
+    accumulatedMsRef.current = 0;
+    runStartMsRef.current = performance.now();
+    setLiveElapsedMs(0);
     lastPeelTsRef.current = 0;
     setShowLevelPicker(false);
     setScreen('PLAYING');
@@ -178,6 +246,32 @@ export default function App() {
       prev.lastTheme === level.packId ? prev : { ...prev, lastTheme: level.packId }
     );
   }, []);
+
+  const startLevel = useCallback(
+    (level: LevelDef, withSlideTransition = false) => {
+      if (transitionTimerRef.current) window.clearTimeout(transitionTimerRef.current);
+
+      if (!withSlideTransition) {
+        applyLevelImmediate(level);
+        setBoardTransition('in');
+        transitionTimerRef.current = window.setTimeout(() => setBoardTransition('idle'), 300);
+        return;
+      }
+
+      // Slide outgoing wall out, then slide incoming wall smoothly into place
+      setShowLevelPicker(false);
+      setScreen('PLAYING');
+      setBoardTransition('out');
+      transitionTimerRef.current = window.setTimeout(() => {
+        applyLevelImmediate(level);
+        setBoardTransition('in');
+        transitionTimerRef.current = window.setTimeout(() => {
+          setBoardTransition('idle');
+        }, 300);
+      }, 190);
+    },
+    [applyLevelImmediate]
+  );
 
   const handleGoHome = useCallback(() => {
     if (endModalTimerRef.current) window.clearTimeout(endModalTimerRef.current);
@@ -215,15 +309,34 @@ export default function App() {
 
   const triggerVictory = useCallback(
     (finalBumps: number, finalMaxCombo: number) => {
-      const elapsedSec = Math.max(
-        1,
-        Math.round((Date.now() - levelStartMsRef.current) / 1000)
-      );
+      const elapsedMs = getCurrentElapsedMs();
+      const elapsedSec = Math.max(1, Math.round(elapsedMs / 1000));
       const stars: 1 | 2 | 3 = finalBumps === 0 ? 3 : finalBumps <= 2 ? 2 : 1;
+
+      const existingRecord =
+        currentLevel.isDaily && currentLevel.dailyDateKey
+          ? progress.dailyRecords[currentLevel.dailyDateKey]
+          : !currentLevel.isEndless
+            ? progress.records[currentLevel.id]
+            : undefined;
+
+      const prevBestMs = existingRecord?.bestTimeMs;
+      const recordTimeMs = progress.timeAttackEnabled ? elapsedMs : undefined;
+      const computedBestMs =
+        recordTimeMs !== undefined
+          ? prevBestMs !== undefined
+            ? Math.min(prevBestMs, recordTimeMs)
+            : recordTimeMs
+          : (prevBestMs ?? null);
+      const isNewBestTime =
+        recordTimeMs !== undefined && (prevBestMs === undefined || recordTimeMs < prevBestMs);
 
       setVictoryStats({
         stars,
         elapsedSec,
+        elapsedMs,
+        bestTimeMs: computedBestMs,
+        isNewBestTime,
         sheets: initialTotalSheets,
         maxCombo: finalMaxCombo,
       });
@@ -238,7 +351,8 @@ export default function App() {
             currentLevel.dailyDateKey,
             stars,
             finalBumps,
-            elapsedSec
+            elapsedSec,
+            recordTimeMs
           );
         }
         if (currentLevel.isEndless) {
@@ -257,7 +371,8 @@ export default function App() {
               prev.records[currentLevel.id],
               stars,
               finalBumps,
-              elapsedSec
+              elapsedSec,
+              recordTimeMs
             ),
           },
         };
@@ -267,7 +382,14 @@ export default function App() {
         setScreen('VICTORY');
       }, 310);
     },
-    [currentLevel, initialTotalSheets]
+    [
+      currentLevel,
+      getCurrentElapsedMs,
+      initialTotalSheets,
+      progress.dailyRecords,
+      progress.records,
+      progress.timeAttackEnabled,
+    ]
   );
 
   const handleTapNote = useCallback(
@@ -452,26 +574,40 @@ export default function App() {
     });
   }, []);
 
+  const handleToggleTimeAttack = useCallback(() => {
+    sound.playClick();
+    setProgress((prev) => {
+      const nextEnabled = !prev.timeAttackEnabled;
+      if (nextEnabled) {
+        // Fresh clean stopwatch start when toggling Time Attack on for the current level
+        accumulatedMsRef.current = 0;
+        runStartMsRef.current = performance.now();
+        setLiveElapsedMs(0);
+      }
+      return { ...prev, timeAttackEnabled: nextEnabled };
+    });
+  }, []);
+
   const handleNextLevel = useCallback(() => {
     sound.playClick();
     if (currentLevel.isDaily) {
-      startLevel(createEndlessLevel(progress.endlessCurrentLevel, currentLevel.packId));
+      startLevel(createEndlessLevel(progress.endlessCurrentLevel, currentLevel.packId), true);
       return;
     }
 
     if (currentLevel.isEndless) {
       const nextNum = (currentLevel.endlessNumber ?? 1) + 1;
-      startLevel(createEndlessLevel(nextNum, currentLevel.packId));
+      startLevel(createEndlessLevel(nextNum, currentLevel.packId), true);
       return;
     }
 
     const packLevels = PACK_LEVELS[currentLevel.packId];
     if (currentLevel.indexInPack + 1 < packLevels.length) {
-      startLevel(packLevels[currentLevel.indexInPack + 1]);
+      startLevel(packLevels[currentLevel.indexInPack + 1], true);
     } else {
       const nextPackIdx = (THEME_ORDER.indexOf(currentLevel.packId) + 1) % THEME_ORDER.length;
       const nextPack = THEME_ORDER[nextPackIdx];
-      startLevel(PACK_LEVELS[nextPack][0]);
+      startLevel(PACK_LEVELS[nextPack][0], true);
     }
   }, [currentLevel, progress.endlessCurrentLevel, startLevel]);
 
@@ -606,6 +742,13 @@ export default function App() {
     <>
       <ParticleCanvas ref={particleRef} />
 
+      {showSplash && (
+        <SplashScreen
+          themeId={selectedTheme}
+          onFinish={() => setShowSplash(false)}
+        />
+      )}
+
       {screen === 'TITLE_MENU' ? (
         <TitleScreen
           selectedTheme={selectedTheme}
@@ -625,9 +768,9 @@ export default function App() {
           className={`${activeTheme.worldClass} relative flex h-dvh w-screen flex-col justify-between overflow-hidden transition-colors duration-500`}
         >
           {/* TOP PERIMETER HUD */}
-          <header className="z-20 mx-auto flex w-full max-w-3xl shrink-0 items-center justify-between gap-3 px-4 pt-3 pb-1 sm:px-6 sm:pt-5">
-            {/* Left: Pause Button + Level Picker Trigger */}
-            <div className="flex min-w-0 items-center gap-2.5">
+          <header className="z-20 mx-auto flex w-full max-w-3xl shrink-0 items-center justify-between gap-2.5 px-4 pt-3 pb-1 sm:px-6 sm:pt-5">
+            {/* Left: Pause Button + Clean Level Name Picker Trigger */}
+            <div className="flex min-w-0 items-center gap-2">
               <button
                 type="button"
                 onClick={() => {
@@ -650,39 +793,23 @@ export default function App() {
                   sound.playClick();
                   setShowLevelPicker(true);
                 }}
-                className={`group flex min-w-0 cursor-pointer items-center gap-2 rounded-xl px-2.5 py-1.5 text-left transition ${
-                  activeTheme.isDark ? 'hover:bg-white/8' : 'hover:bg-black/5'
+                aria-label={`Current level: ${currentLevel.title}. Tap to switch wall`}
+                className={`group flex h-10 min-w-0 cursor-pointer items-center gap-1.5 rounded-xl px-3 text-left transition active:scale-[0.98] ${
+                  activeTheme.isDark
+                    ? 'bg-white/8 hover:bg-white/14'
+                    : 'bg-black/5 hover:bg-black/9'
                 }`}
               >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-display truncate text-base font-bold leading-tight sm:text-lg">
-                      {currentLevel.title}
-                    </span>
-                    <ChevronDown className="h-4 w-4 shrink-0 opacity-55 transition-transform group-hover:translate-y-0.5" />
-                  </div>
-                  <div className="font-mono-num flex items-center gap-1.5 text-[11px] font-medium opacity-70">
-                    <span>{activeTheme.shortName}</span>
-                    <span aria-hidden="true">·</span>
-                    <span>
-                      {currentLevel.isDaily
-                        ? 'Daily Puzzle'
-                        : currentLevel.isEndless
-                          ? `Endless #${currentLevel.endlessNumber}`
-                          : `Wall ${currentLevel.indexInPack + 1}/6`}
-                    </span>
-                    <span aria-hidden="true">·</span>
-                    <span>
-                      {currentLevel.rows}×{currentLevel.cols}
-                    </span>
-                  </div>
-                </div>
+                <span className="font-display truncate text-base font-bold leading-none sm:text-lg">
+                  {currentLevel.title}
+                </span>
+                <ChevronDown className="h-4 w-4 shrink-0 opacity-60 transition-transform group-hover:translate-y-0.5" />
               </button>
             </div>
 
-            {/* Right: Clean Tabular Telemetry + Mute */}
-            <div className="flex shrink-0 items-center gap-3 sm:gap-5">
-              <div className="flex items-center gap-3 text-xs font-semibold sm:text-sm">
+            {/* Right: Clean Tabular Telemetry + Music & Sound */}
+            <div className="flex shrink-0 items-center gap-2.5 sm:gap-4">
+              <div className="flex items-center gap-2.5 text-xs font-semibold sm:gap-3 sm:text-sm">
                 <div className="flex items-baseline gap-1">
                   <span className="hidden opacity-60 sm:inline">Left</span>
                   <span className="font-mono-num text-sm font-bold sm:text-base">
@@ -772,32 +899,103 @@ export default function App() {
             </div>
           </header>
 
-          {/* CENTER STAGE: UNOBSTRUCTED TACTILE BOARD */}
-          <main className="relative flex flex-1 items-center justify-center px-3 py-1">
-            {combo >= 2 && (
+          {/* CENTER STAGE: TIME ATTACK STOPWATCH STRIP + UNOBSTRUCTED TACTILE BOARD */}
+          <main className="relative flex flex-1 flex-col items-center justify-center gap-2 px-3 py-1">
+            {/* Time Attack Toggle & Live Stopwatch positioned right above the sticky note board */}
+            <div className="z-20 flex w-full max-w-[540px] items-center justify-between gap-2 px-1">
+              <button
+                type="button"
+                onClick={handleToggleTimeAttack}
+                aria-pressed={progress.timeAttackEnabled}
+                className={`flex h-8 cursor-pointer items-center gap-1.5 rounded-xl px-2.5 text-xs font-bold transition active:scale-95 whitespace-nowrap ${
+                  progress.timeAttackEnabled
+                    ? 'bg-slate-900 text-amber-300 shadow-xs'
+                    : activeTheme.isDark
+                      ? 'bg-white/8 text-slate-200 hover:bg-white/14'
+                      : 'bg-black/6 text-current hover:bg-black/10'
+                }`}
+              >
+                <Timer className="h-3.5 w-3.5 shrink-0" />
+                <span>Time Attack</span>
+                <span className="opacity-70">{progress.timeAttackEnabled ? 'On' : 'Off'}</span>
+              </button>
+
+              {progress.timeAttackEnabled ? (
+                <div className="font-mono-num flex items-center gap-2.5 text-sm font-bold">
+                  <span
+                    aria-live="off"
+                    className="flex items-center gap-1.5 tracking-tight"
+                  >
+                    <Timer className="h-4 w-4 text-amber-500" />
+                    {formatStopwatchMs(liveElapsedMs)}
+                  </span>
+                  {(() => {
+                    const rec =
+                      currentLevel.isDaily && currentLevel.dailyDateKey
+                        ? progress.dailyRecords[currentLevel.dailyDateKey]
+                        : !currentLevel.isEndless
+                          ? progress.records[currentLevel.id]
+                          : undefined;
+                    if (rec?.bestTimeMs === undefined) return null;
+                    return (
+                      <>
+                        <span aria-hidden="true" className="opacity-30">
+                          ·
+                        </span>
+                        <span className="text-xs font-semibold opacity-70">
+                          Best {formatStopwatchMs(rec.bestTimeMs)}
+                        </span>
+                      </>
+                    );
+                  })()}
+                </div>
+              ) : combo >= 2 ? (
+                <div
+                  key={`combo-${combo}`}
+                  aria-live="polite"
+                  className="combo-pop font-display text-sm font-bold tracking-tight text-amber-500 sm:text-base"
+                >
+                  ×{combo} Clean Streak
+                </div>
+              ) : (
+                <div className="h-4" />
+              )}
+            </div>
+
+            {progress.timeAttackEnabled && combo >= 2 && (
               <div
                 key={`combo-${combo}`}
                 aria-live="polite"
-                className="combo-pop font-display pointer-events-none absolute top-1 left-1/2 z-30 -translate-x-1/2 text-base font-bold tracking-tight text-amber-500 drop-shadow-xs sm:text-lg"
+                className="combo-pop font-display pointer-events-none absolute top-9 left-1/2 z-30 -translate-x-1/2 text-sm font-bold tracking-tight text-amber-500 drop-shadow-xs sm:text-base"
               >
                 ×{combo} Clean Streak
               </div>
             )}
 
-            <GameBoard
-              rows={currentLevel.rows}
-              cols={currentLevel.cols}
-              notes={notes}
-              peelingGhosts={peelingGhosts}
-              obstacles={obstacles}
-              theme={activeTheme}
-              animateSpawn={animateSpawn}
-              levelKey={levelInstanceKey}
-              blockerFeedback={blockerFeedback}
-              hint={hint}
-              focusedCell={focusedCell}
-              onTapNote={handleTapNote}
-            />
+            <div
+              className={
+                boardTransition === 'out'
+                  ? 'board-slide-out'
+                  : boardTransition === 'in'
+                    ? 'board-slide-in'
+                    : ''
+              }
+            >
+              <GameBoard
+                rows={currentLevel.rows}
+                cols={currentLevel.cols}
+                notes={notes}
+                peelingGhosts={peelingGhosts}
+                obstacles={obstacles}
+                theme={activeTheme}
+                animateSpawn={animateSpawn}
+                levelKey={levelInstanceKey}
+                blockerFeedback={blockerFeedback}
+                hint={hint}
+                focusedCell={focusedCell}
+                onTapNote={handleTapNote}
+              />
+            </div>
           </main>
 
           {/* BOTTOM ERGONOMIC ACTION BAR */}
@@ -858,7 +1056,7 @@ export default function App() {
         <LevelPickerModal
           currentLevel={currentLevel}
           progress={progress}
-          onSelectLevel={(lvl) => startLevel(lvl)}
+          onSelectLevel={(lvl) => startLevel(lvl, true)}
           onSelectDaily={handleStartDaily}
           onSelectEndless={(packId) => handleStartEndless(packId)}
           onClose={() => setShowLevelPicker(false)}
@@ -893,6 +1091,10 @@ export default function App() {
           sheetsPeeled={victoryStats.sheets}
           bumps={bumps}
           elapsedSec={victoryStats.elapsedSec}
+          elapsedMs={victoryStats.elapsedMs}
+          timeAttackActive={progress.timeAttackEnabled}
+          bestTimeMs={victoryStats.bestTimeMs}
+          isNewBestTime={victoryStats.isNewBestTime}
           maxCombo={victoryStats.maxCombo}
           dailyStreak={progress.dailyStreak}
           hasNextLevelInPack={hasNextInPack}

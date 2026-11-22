@@ -9,6 +9,7 @@ const DEFAULT_PROGRESS: SavedProgress = {
   lastDailyCompletedDate: null,
   muted: false,
   musicMuted: false,
+  timeAttackEnabled: false,
   lastTheme: 'fridge',
   endlessBestStreak: 0,
   endlessCurrentLevel: 1,
@@ -26,6 +27,7 @@ export function loadProgress(): SavedProgress {
       lastDailyCompletedDate: parsed.lastDailyCompletedDate ?? null,
       muted: Boolean(parsed.muted),
       musicMuted: Boolean(parsed.musicMuted),
+      timeAttackEnabled: Boolean(parsed.timeAttackEnabled),
       lastTheme: (parsed.lastTheme as ThemeId) ?? 'fridge',
       endlessBestStreak: parsed.endlessBestStreak ?? 0,
       endlessCurrentLevel: Math.max(1, parsed.endlessCurrentLevel ?? 1),
@@ -47,21 +49,33 @@ export function mergeLevelRecord(
   existing: LevelRecord | undefined,
   stars: 1 | 2 | 3,
   bumps: number,
-  timeSec: number
+  timeSec: number,
+  timeMs?: number
 ): LevelRecord {
   if (!existing) {
-    return { stars, bestBumps: bumps, bestTimeSec: timeSec };
+    return {
+      stars,
+      bestBumps: bumps,
+      bestTimeSec: timeSec,
+      ...(timeMs !== undefined ? { bestTimeMs: timeMs } : {}),
+    };
   }
+  const prevMs = existing.bestTimeMs;
+  const nextBestMs =
+    timeMs !== undefined
+      ? prevMs !== undefined
+        ? Math.min(prevMs, timeMs)
+        : timeMs
+      : prevMs;
+
   return {
     stars: Math.max(existing.stars, stars) as 1 | 2 | 3,
     bestBumps: Math.min(existing.bestBumps, bumps),
     bestTimeSec: Math.min(existing.bestTimeSec, timeSec),
+    ...(nextBestMs !== undefined ? { bestTimeMs: nextBestMs } : {}),
   };
 }
 
-/**
- * Checks whether `prevDateKey` is exactly one calendar day before `currentDateKey` (YYYY-MM-DD).
- */
 function isYesterday(prevDateKey: string, currentDateKey: string): boolean {
   const [py, pm, pd] = prevDateKey.split('-').map(Number);
   const [cy, cm, cd] = currentDateKey.split('-').map(Number);
@@ -76,7 +90,8 @@ export function applyDailyCompletion(
   dateKey: string,
   stars: 1 | 2 | 3,
   bumps: number,
-  timeSec: number
+  timeSec: number,
+  timeMs?: number
 ): SavedProgress {
   const alreadyCompletedToday = Boolean(prev.dailyRecords[dateKey]);
   let nextStreak = prev.dailyStreak;
@@ -95,7 +110,13 @@ export function applyDailyCompletion(
     ...prev,
     dailyRecords: {
       ...prev.dailyRecords,
-      [dateKey]: mergeLevelRecord(prev.dailyRecords[dateKey], stars, bumps, timeSec),
+      [dateKey]: mergeLevelRecord(
+        prev.dailyRecords[dateKey],
+        stars,
+        bumps,
+        timeSec,
+        timeMs
+      ),
     },
     dailyStreak: nextStreak,
     lastDailyCompletedDate: nextLastDate,
