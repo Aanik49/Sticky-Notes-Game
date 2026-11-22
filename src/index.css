@@ -637,6 +637,177 @@
   animation: rewardSealPop 460ms cubic-bezier(0.22, 1.4, 0.36, 1) 140ms backwards;
 }
 
+/* Primary Play Button Specular Shine Sweep */
+@keyframes playBtnShineSweep {
+  0%, 48% {
+    transform: translateX(-160%) skewX(-22deg);
+    opacity: 0;
+  }
+  56% {
+    opacity: 1;
+  }
+  84% {
+    transform: translateX(300%) skewX(-22deg);
+    opacity: 1;
+  }
+  90%, 100% {
+    transform: translateX(300%) skewX(-22deg);
+    opacity: 0;
+  }
+}
+
+.play-btn-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.play-btn-shine::after {
+  content: "";
+  position: absolute;
+  inset: -25% auto -25% -40%;
+  width: 38%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(254, 240, 138, 0.12) 22%,
+    rgba(255, 251, 235, 0.42) 50%,
+    rgba(254, 240, 138, 0.12) 78%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 2;
+  will-change: transform, opacity;
+  animation: playBtnShineSweep 3.2s cubic-bezier(0.25, 0.8, 0.25, 1) infinite;
+}
+
+/* Lobby Sticky-Note Logo Tactile Animations */
+@keyframes lobbyLeftNoteNudge {
+  0%, 100% {
+    transform: translate(0px, 0px) rotate(0deg);
+  }
+  32% {
+    transform: translate(5px, -2px) rotate(2.2deg);
+  }
+  44% {
+    transform: translate(1.5px, 0px) rotate(-0.8deg);
+  }
+  65% {
+    transform: translate(0px, -2.5px) rotate(-1deg);
+  }
+}
+
+@keyframes lobbyArrowSlideRight {
+  0%, 100% {
+    transform: translateX(0px);
+  }
+  30% {
+    transform: translateX(5px);
+  }
+  46% {
+    transform: translateX(-1px);
+  }
+  62% {
+    transform: translateX(2.5px);
+  }
+  78% {
+    transform: translateX(0px);
+  }
+}
+
+@keyframes lobbyRightNoteLift {
+  0%, 100% {
+    transform: translate(0px, 0px) rotate(0deg) scale(1);
+  }
+  42% {
+    transform: translate(1.5px, -7px) rotate(2.6deg) scale(1.035);
+  }
+  60% {
+    transform: translate(1px, -5.5px) rotate(1.8deg) scale(1.02);
+  }
+}
+
+@keyframes lobbyArrowGlideUp {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  40% {
+    transform: translateY(-5.5px);
+  }
+  60% {
+    transform: translateY(-2.5px);
+  }
+}
+
+@keyframes lobbyCenterFloat {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-2.5px);
+  }
+}
+
+@keyframes lobbyCornerFlutter {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.09);
+  }
+}
+
+.lobby-note-left {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lobbyLeftNoteNudge 2.9s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite;
+}
+
+.lobby-arrow-right {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lobbyArrowSlideRight 2.9s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.lobby-note-right {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lobbyRightNoteLift 3.1s ease-in-out 0.35s infinite;
+}
+
+.lobby-arrow-up {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lobbyArrowGlideUp 3.1s cubic-bezier(0.22, 1, 0.36, 1) 0.35s infinite;
+}
+
+.lobby-note-center {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lobbyCenterFloat 3.6s ease-in-out infinite;
+}
+
+.lobby-corner-flap {
+  transform-box: fill-box;
+  transform-origin: bottom right;
+  animation: lobbyCornerFlutter 3.6s ease-in-out infinite;
+}
+
+/* Rotating Lobby Footer Tip Transition */
+@keyframes footerTipFade {
+  0% {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.footer-tip-fade {
+  animation: footerTipFade 260ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sticky-note-card,
   .note-spawn,
@@ -649,7 +820,15 @@
   .splash-bar-anim,
   .pack-unlocked-shine::after,
   .pack-unlock-aura,
-  .reward-seal-pop {
+  .reward-seal-pop,
+  .play-btn-shine::after,
+  .lobby-note-left,
+  .lobby-arrow-right,
+  .lobby-note-right,
+  .lobby-arrow-up,
+  .lobby-note-center,
+  .lobby-corner-flap,
+  .footer-tip-fade {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }

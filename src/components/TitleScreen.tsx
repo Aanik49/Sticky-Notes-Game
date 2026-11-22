@@ -65,6 +65,12 @@ const PACK_GLOW_RGB: Record<ThemeId, string> = {
   midnight: '251, 191, 36',
 };
 
+const LOBBY_FOOTER_TIPS = [
+  'Tap or Click to Peel',
+  'Tap any note to Peel it off along its arrow',
+  'Clear Blocking notes first to uncover the entire Wall',
+] as const;
+
 export const TitleScreen: React.FC<TitleScreenProps> = ({
   selectedTheme,
   progress,
@@ -93,6 +99,15 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   const [peelingIds, setPeelingIds] = useState<Record<string, Direction>>({});
   const [bumpedId, setBumpedId] = useState<{ id: string; dir: Direction; ts: number } | null>(null);
   const [demoResetting, setDemoResetting] = useState(false);
+  const [footerTipIndex, setFooterTipIndex] = useState(0);
+
+  // Cycle bottom single-line instruction tips continuously every 2 seconds
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setFooterTipIndex((prev) => (prev + 1) % LOBBY_FOOTER_TIPS.length);
+    }, 2000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   // Auto-repopulate the interactive hero wall once cleared
   useEffect(() => {
@@ -226,12 +241,12 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center gap-5 px-5 pb-4 sm:px-8 lg:flex-row lg:items-center lg:justify-between lg:gap-12">
         {/* Left Zone: Bespoke SVG Title Lockup + Pack Selector + Daily/Endless + Primary Play CTA */}
         <div className="flex w-full max-w-md flex-col items-center text-center lg:items-start lg:text-left">
-          {/* Bespoke Inline SVG Layered Sticky-Note Title Lockup */}
+          {/* Bespoke Inline SVG Layered Sticky-Note Title Lockup (Animated!) */}
           <svg
             viewBox="0 0 380 128"
             role="img"
             aria-label="Sticky Notes Puzzle"
-            className="mb-1.5 h-auto w-[264px] sm:w-[330px] lg:w-[360px]"
+            className="mb-4 h-auto w-[264px] overflow-visible sm:w-[330px] lg:w-[360px]"
           >
             <defs>
               <filter id="noteShadow" x="-15%" y="-15%" width="135%" height="145%">
@@ -239,52 +254,75 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
               </filter>
             </defs>
 
-            {/* Decorative Back Notes */}
+            {/* Left Coral Note: nudges toward the center note with right-gliding arrow */}
             <g transform="translate(18, 22) rotate(-8)" filter="url(#noteShadow)">
-              <rect width="74" height="74" rx="8" fill="#fb7185" />
-              <rect width="74" height="16" rx="4" fill="#ffffff" fillOpacity="0.28" />
-              <path d="M24 44h26M41 35l9 9-9 9" stroke="#4c0519" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+              <g className="lobby-note-left">
+                <rect width="74" height="74" rx="8" fill="#fb7185" />
+                <rect width="74" height="16" rx="4" fill="#ffffff" fillOpacity="0.28" />
+                <path
+                  className="lobby-arrow-right"
+                  d="M24 44h26M41 35l9 9-9 9"
+                  stroke="#4c0519"
+                  strokeWidth="4.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+              </g>
             </g>
 
+            {/* Right Sky Note: lifts upward cleanly along its up-gliding arrow */}
             <g transform="translate(292, 16) rotate(9)" filter="url(#noteShadow)">
-              <rect width="70" height="70" rx="8" fill="#38bdf8" />
-              <rect width="70" height="15" rx="4" fill="#ffffff" fillOpacity="0.28" />
-              <path d="M35 50V24M26 33l9-9 9 9" stroke="#082f49" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+              <g className="lobby-note-right">
+                <rect width="70" height="70" rx="8" fill="#38bdf8" />
+                <rect width="70" height="15" rx="4" fill="#ffffff" fillOpacity="0.28" />
+                <path
+                  className="lobby-arrow-up"
+                  d="M35 50V24M26 33l9-9 9 9"
+                  stroke="#082f49"
+                  strokeWidth="4.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+              </g>
             </g>
 
-            {/* Primary Canary Title Note */}
+            {/* Primary Canary Title Note: calm buoyant float with subtle curled-corner flutter */}
             <g transform="translate(66, 8) rotate(-2)" filter="url(#noteShadow)">
-              <path
-                d="M10 0 H242 A10 10 0 0 1 252 10 V82 L228 106 H10 A10 10 0 0 1 0 96 V10 A10 10 0 0 1 10 0 Z"
-                fill="#fde047"
-              />
-              <rect x="0" y="0" width="252" height="22" rx="6" fill="#ffffff" fillOpacity="0.34" />
-              {/* Curled corner flap */}
-              <path d="M228 106 V86 A4 4 0 0 1 232 82 H252 Z" fill="#eab308" />
-              <text
-                x="126"
-                y="54"
-                textAnchor="middle"
-                fill="#291503"
-                style={{ fontFamily: 'Fredoka, sans-serif', fontWeight: 700, fontSize: '36px', letterSpacing: '-0.02em' }}
-              >
-                STICKY NOTES
-              </text>
-              <text
-                x="126"
-                y="84"
-                textAnchor="middle"
-                fill="#713f12"
-                style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontWeight: 700, fontSize: '14px', letterSpacing: '0.18em' }}
-              >
-                PEEL TO CLEAR
-              </text>
+              <g className="lobby-note-center">
+                <path
+                  d="M10 0 H242 A10 10 0 0 1 252 10 V82 L228 106 H10 A10 10 0 0 1 0 96 V10 A10 10 0 0 1 10 0 Z"
+                  fill="#fde047"
+                />
+                <rect x="0" y="0" width="252" height="22" rx="6" fill="#ffffff" fillOpacity="0.34" />
+                {/* Curled corner flap */}
+                <path
+                  className="lobby-corner-flap"
+                  d="M228 106 V86 A4 4 0 0 1 232 82 H252 Z"
+                  fill="#eab308"
+                />
+                <text
+                  x="126"
+                  y="54"
+                  textAnchor="middle"
+                  fill="#291503"
+                  style={{ fontFamily: 'Fredoka, sans-serif', fontWeight: 700, fontSize: '36px', letterSpacing: '-0.02em' }}
+                >
+                  STICKY NOTES
+                </text>
+                <text
+                  x="126"
+                  y="84"
+                  textAnchor="middle"
+                  fill="#713f12"
+                  style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontWeight: 700, fontSize: '14px', letterSpacing: '0.18em' }}
+                >
+                  PEEL TO CLEAR
+                </text>
+              </g>
             </g>
           </svg>
-
-          <p className="mb-3.5 max-w-sm text-sm leading-relaxed opacity-80 sm:text-[15px]">
-            Tap any note to peel it off along its arrow. Clear blocking notes first to uncover the entire wall.
-          </p>
 
           {/* Pack World Selector (4 Tactile Packs with Progressive Unlock + Glow & Shine) */}
           <div className="mb-3.5 grid w-full grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-2">
@@ -441,15 +479,15 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             </button>
           </div>
 
-          {/* Primary Play Action (or View Locked Walls when a locked pack is selected) */}
+          {/* Primary Play Action (with specular shine sweep) */}
           {selectedUnlocked ? (
             <button
               type="button"
               onClick={() => onStartPack(selectedTheme)}
-              className="font-display flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-2xl bg-slate-900 px-6 py-3.5 text-lg font-bold text-amber-300 shadow-[0_6px_0_#020617,0_14px_28px_-6px_rgba(15,23,42,0.38)] transition hover:bg-slate-800 active:translate-y-1 active:shadow-[0_2px_0_#020617] whitespace-nowrap"
+              className="play-btn-shine font-display flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-2xl bg-slate-900 px-6 py-3.5 text-lg font-bold text-amber-300 shadow-[0_6px_0_#020617,0_14px_28px_-6px_rgba(15,23,42,0.38)] transition hover:bg-slate-800 active:translate-y-1 active:shadow-[0_2px_0_#020617] whitespace-nowrap"
             >
-              <Play className="h-5 w-5 fill-current" />
-              <span>Play {theme.shortName}</span>
+              <Play className="relative z-10 h-5 w-5 fill-current" />
+              <span className="relative z-10">Play {theme.shortName}</span>
             </button>
           ) : (
             <div className="w-full">
@@ -547,9 +585,11 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
         </div>
       </main>
 
-      {/* Single Flat Control-Hint Footer Line */}
-      <footer className="z-20 shrink-0 pb-4 text-center text-xs font-medium opacity-65">
-        Tap or Click to Peel
+      {/* Single Flat Rotating Control-Hint Footer Line (cycles every 2s) */}
+      <footer className="z-20 flex min-h-8 shrink-0 items-center justify-center px-4 pb-4 text-center text-xs font-medium opacity-70">
+        <span key={footerTipIndex} className="footer-tip-fade truncate whitespace-nowrap">
+          {LOBBY_FOOTER_TIPS[footerTipIndex]}
+        </span>
       </footer>
     </div>
   );
