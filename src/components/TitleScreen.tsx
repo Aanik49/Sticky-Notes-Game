@@ -246,7 +246,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             viewBox="0 0 380 128"
             role="img"
             aria-label="Sticky Notes Puzzle"
-            className="mb-4 h-auto w-[264px] overflow-visible sm:w-[330px] lg:w-[360px]"
+            className="-mt-5 mb-7 h-auto w-[264px] overflow-visible sm:-mt-6 sm:mb-8 sm:w-[330px] lg:w-[360px]"
           >
             <defs>
               <filter id="noteShadow" x="-15%" y="-15%" width="135%" height="145%">
@@ -479,18 +479,26 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             </button>
           </div>
 
-          {/* Primary Play Action (with specular shine sweep) */}
+          {/* Primary Play Action (moved slightly down, with specular shine sweep & theme harmony) */}
           {selectedUnlocked ? (
             <button
               type="button"
               onClick={() => onStartPack(selectedTheme)}
-              className="play-btn-shine font-display flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-2xl bg-slate-900 px-6 py-3.5 text-lg font-bold text-amber-300 shadow-[0_6px_0_#020617,0_14px_28px_-6px_rgba(15,23,42,0.38)] transition hover:bg-slate-800 active:translate-y-1 active:shadow-[0_2px_0_#020617] whitespace-nowrap"
+              className={`play-btn-shine font-display mt-4 flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-2xl px-6 py-3.5 text-lg font-bold transition active:translate-y-1 whitespace-nowrap ${
+                selectedTheme === 'cork'
+                  ? 'bg-[#3b200e] text-amber-200 shadow-[0_6px_0_#1e0e05,0_14px_28px_-6px_rgba(38,20,8,0.42)] hover:bg-[#4a2913] active:shadow-[0_2px_0_#1e0e05]'
+                  : selectedTheme === 'drafting'
+                    ? 'bg-[#082622] text-amber-300 ring-1 ring-teal-300/25 shadow-[0_6px_0_#041513,0_14px_28px_-6px_rgba(4,21,19,0.48)] hover:bg-[#0d332e] active:shadow-[0_2px_0_#041513]'
+                    : selectedTheme === 'midnight'
+                      ? 'bg-slate-950 text-amber-300 ring-1 ring-amber-400/30 shadow-[0_6px_0_#020617,0_14px_28px_-6px_rgba(2,6,23,0.55)] hover:bg-slate-900 active:shadow-[0_2px_0_#020617]'
+                      : 'bg-slate-900 text-amber-300 shadow-[0_6px_0_#020617,0_14px_28px_-6px_rgba(15,23,42,0.38)] hover:bg-slate-800 active:shadow-[0_2px_0_#020617]'
+              }`}
             >
               <Play className="relative z-10 h-5 w-5 fill-current" />
               <span className="relative z-10">Play {theme.shortName}</span>
             </button>
           ) : (
-            <div className="w-full">
+            <div className="mt-4 w-full">
               <button
                 type="button"
                 onClick={() => {
