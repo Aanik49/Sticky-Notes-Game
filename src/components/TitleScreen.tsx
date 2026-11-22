@@ -3,8 +3,11 @@ import {
   Calendar,
   CheckCircle2,
   Infinity as InfinityIcon,
+  Layers,
+  Lock,
   Music,
   Play,
+  Sparkles,
   Star,
   Volume2,
   VolumeX,
@@ -12,7 +15,11 @@ import {
 import { sound } from '../game/audio';
 import {
   formatDailyDateLabel,
+  getDailyMission,
+  getPackClearedCount,
+  getPackUnlockRequirement,
   getTodayDateKey,
+  isPackUnlocked,
   PACK_LEVELS,
   THEME_ORDER,
   THEMES,
@@ -20,6 +27,7 @@ import {
 import { checkNotePath, PAPER_HEX } from '../game/solver';
 import { ActiveNote, Direction, SavedProgress, ThemeId } from '../game/types';
 import { GameIcon } from './GameIcon';
+import { DailyRewardIcon } from './Modals';
 
 interface TitleScreenProps {
   selectedTheme: ThemeId;
@@ -28,6 +36,7 @@ interface TitleScreenProps {
   musicMuted: boolean;
   onSelectTheme: (theme: ThemeId) => void;
   onStartPack: (theme: ThemeId) => void;
+  onOpenLevels: (packId?: ThemeId) => void;
   onStartDaily: () => void;
   onStartEndless: () => void;
   onToggleMute: () => void;
@@ -49,6 +58,13 @@ const DEMO_WALL: Omit<ActiveNote, 'id'>[] = [
 
 const ARROW_ROT: Record<Direction, number> = { R: 0, D: 90, L: 180, U: -90 };
 
+const PACK_GLOW_RGB: Record<ThemeId, string> = {
+  fridge: '14, 165, 233',
+  cork: '217, 119, 6',
+  drafting: '20, 184, 166',
+  midnight: '251, 191, 36',
+};
+
 export const TitleScreen: React.FC<TitleScreenProps> = ({
   selectedTheme,
   progress,
@@ -56,6 +72,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   musicMuted,
   onSelectTheme,
   onStartPack,
+  onOpenLevels,
   onStartDaily,
   onStartEndless,
   onToggleMute,
@@ -65,7 +82,10 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   const theme = THEMES[selectedTheme];
   const todayKey = getTodayDateKey();
   const todayLabel = formatDailyDateLabel(todayKey);
+  const todayMission = getDailyMission(todayKey);
   const todayDailyRecord = progress.dailyRecords[todayKey];
+  const selectedUnlocked = isPackUnlocked(selectedTheme, progress.records);
+  const selectedRequirement = getPackUnlockRequirement(selectedTheme, progress.records);
 
   const [demoNotes, setDemoNotes] = useState<ActiveNote[]>(() =>
     DEMO_WALL.map((n, i) => ({ ...n, id: `demo-${i}` }))
@@ -124,7 +144,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
     <div
       className={`${theme.worldClass} relative flex h-dvh w-screen flex-col overflow-hidden transition-colors duration-500`}
     >
-      {/* Top Quiet Perimeter Bar with Game Icon + Music & Sound Buttons */}
+      {/* Top Quiet Perimeter Bar with Game Icon + Walls, Music & Sound Buttons */}
       <header className="z-20 flex shrink-0 items-center justify-between px-5 pt-4 pb-2 sm:px-8 sm:pt-6">
         <div className="flex items-center gap-3">
           <GameIcon className="h-9 w-9 shrink-0 drop-shadow-sm sm:h-10 sm:w-10" />
@@ -149,6 +169,23 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              sound.playClick();
+              onOpenLevels(selectedTheme);
+            }}
+            aria-label="Browse all walls and packs"
+            title="All Walls"
+            className={`flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl transition active:scale-95 ${
+              theme.isDark
+                ? 'bg-white/10 text-slate-100 hover:bg-white/15'
+                : 'bg-black/6 text-current hover:bg-black/10'
+            }`}
+          >
+            <Layers className="h-5 w-5" />
+          </button>
+
           <button
             type="button"
             onClick={onToggleMusic}
@@ -187,7 +224,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
 
       {/* Main Responsive Stage: Split 2-column on desktop, airy vertical stack on mobile */}
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center gap-5 px-5 pb-4 sm:px-8 lg:flex-row lg:items-center lg:justify-between lg:gap-12">
-        {/* Left Zone: Bespoke SVG Title Lockup + Pack Selector + Primary Play CTA + Daily Puzzle */}
+        {/* Left Zone: Bespoke SVG Title Lockup + Pack Selector + Daily/Endless + Primary Play CTA */}
         <div className="flex w-full max-w-md flex-col items-center text-center lg:items-start lg:text-left">
           {/* Bespoke Inline SVG Layered Sticky-Note Title Lockup */}
           <svg
@@ -245,16 +282,22 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             </g>
           </svg>
 
-          <p className="mb-4 max-w-sm text-sm leading-relaxed opacity-80 sm:text-[15px]">
+          <p className="mb-3.5 max-w-sm text-sm leading-relaxed opacity-80 sm:text-[15px]">
             Tap any note to peel it off along its arrow. Clear blocking notes first to uncover the entire wall.
           </p>
 
-          {/* Pack World Selector (4 Distinct Tactile Packs) */}
-          <div className="mb-4 grid w-full grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-2">
+          {/* Pack World Selector (4 Tactile Packs with Progressive Unlock + Glow & Shine) */}
+          <div className="mb-3.5 grid w-full grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-2">
             {THEME_ORDER.map((id) => {
               const t = THEMES[id];
               const isSelected = id === selectedTheme;
-              const stats = getPackStars(id);
+              const unlocked = isPackUnlocked(id, progress.records);
+              const isProgressionPack = id !== 'fridge';
+              const showShine = unlocked && isProgressionPack;
+              const isJustUnlocked = showShine && progress.newlyUnlockedPacks.includes(id);
+              const cleared = getPackClearedCount(id, progress.records);
+              const totalLevels = PACK_LEVELS[id].length;
+
               return (
                 <button
                   key={id}
@@ -263,30 +306,68 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
                     sound.playClick();
                     onSelectTheme(id);
                   }}
+                  style={
+                    showShine
+                      ? ({ '--pack-glow-rgb': PACK_GLOW_RGB[id] } as React.CSSProperties)
+                      : undefined
+                  }
                   className={`group flex cursor-pointer items-center gap-3 rounded-2xl border-2 px-3 py-2 text-left transition active:scale-[0.98] ${
-                    isSelected
-                      ? theme.isDark
-                        ? 'border-amber-400 bg-white/12 text-white shadow-md'
-                        : 'border-slate-900 bg-white/90 text-slate-900 shadow-md'
-                      : theme.isDark
-                        ? 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
-                        : 'border-black/8 bg-white/45 text-current hover:bg-white/75'
+                    showShine ? 'pack-unlocked-shine' : ''
+                  } ${isJustUnlocked ? 'pack-just-unlocked' : ''} ${
+                    !unlocked
+                      ? isSelected
+                        ? theme.isDark
+                          ? 'border-white/40 bg-white/10 text-slate-200'
+                          : 'border-slate-500/70 bg-white/65 text-slate-700'
+                        : theme.isDark
+                          ? 'border-white/8 bg-white/4 text-slate-400 opacity-75 hover:opacity-95'
+                          : 'border-black/8 bg-white/30 text-slate-600 opacity-75 hover:opacity-95'
+                      : isSelected
+                        ? theme.isDark
+                          ? 'border-amber-400 bg-white/14 text-white shadow-md'
+                          : 'border-slate-900 bg-white/95 text-slate-900 shadow-md'
+                        : theme.isDark
+                          ? 'border-white/15 bg-white/7 text-slate-200 hover:bg-white/12'
+                          : 'border-black/10 bg-white/60 text-current hover:bg-white/85'
                   }`}
                 >
-                  {/* Mini surface swatch */}
+                  {/* Mini surface swatch (with lock overlay if locked) */}
                   <span
                     aria-hidden="true"
-                    className={`${t.boardClass} h-8 w-8 shrink-0 rounded-lg !border-2 !shadow-sm`}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="font-display truncate text-sm font-semibold leading-tight">
-                      {t.shortName}
-                    </div>
-                    <div className="font-mono-num mt-0.5 flex items-center gap-1 text-[11px] opacity-70">
-                      <Star className="h-3 w-3 fill-amber-400 text-amber-500" />
-                      <span>
-                        {stats.earned}/{stats.total}
+                    className={`${t.boardClass} relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg !border-2 !shadow-sm ${
+                      !unlocked ? 'grayscale-[45%] brightness-90' : ''
+                    }`}
+                  >
+                    {!unlocked && (
+                      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-slate-950/75 text-white">
+                        <Lock className="h-3 w-3" />
                       </span>
+                    )}
+                  </span>
+
+                  <div className="relative z-10 min-w-0 flex-1">
+                    <div className="flex items-center gap-1">
+                      <span className="font-display truncate text-sm font-semibold leading-tight">
+                        {t.shortName}
+                      </span>
+                      {isJustUnlocked && (
+                        <Sparkles className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                      )}
+                    </div>
+                    <div className="font-mono-num mt-0.5 flex items-center gap-1 text-[11px] opacity-75">
+                      {unlocked ? (
+                        <>
+                          <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-500" />
+                          <span>
+                            {cleared}/{totalLevels}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="h-3 w-3 shrink-0 opacity-70" />
+                          <span>Locked</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </button>
@@ -294,12 +375,12 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             })}
           </div>
 
-          {/* Daily Puzzle + Endless Wall Row (Positioned above Play button) */}
+          {/* Daily Puzzle (with Daily Mission preview) + Endless Wall Row */}
           <div className="mb-2.5 grid w-full grid-cols-5 gap-2.5">
             <button
               type="button"
               onClick={onStartDaily}
-              className={`col-span-3 flex cursor-pointer items-center justify-between gap-2 rounded-2xl border-2 px-3.5 py-2.5 text-left transition active:translate-y-0.5 ${
+              className={`col-span-3 flex cursor-pointer items-center justify-between gap-2 rounded-2xl border-2 px-3.5 py-2 text-left transition active:translate-y-0.5 ${
                 todayDailyRecord
                   ? theme.isDark
                     ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-100 hover:bg-emerald-400/16'
@@ -310,17 +391,19 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
               }`}
             >
               <div className="flex min-w-0 items-center gap-2.5">
-                {todayDailyRecord ? (
+                {todayDailyRecord?.dailyMissionCompleted ? (
+                  <DailyRewardIcon className="h-6 w-6 shrink-0" />
+                ) : todayDailyRecord ? (
                   <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />
                 ) : (
                   <Calendar className="h-5 w-5 shrink-0 text-amber-500" />
                 )}
                 <div className="min-w-0">
                   <div className="font-display truncate text-sm font-bold leading-tight">
-                    Daily Puzzle
+                    Daily · {todayLabel}
                   </div>
-                  <div className="font-mono-num truncate text-[11px] opacity-70">
-                    {todayLabel}
+                  <div className="truncate text-[11px] font-medium opacity-75">
+                    {todayMission.label}
                   </div>
                 </div>
               </div>
@@ -346,7 +429,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             <button
               type="button"
               onClick={onStartEndless}
-              className={`font-display col-span-2 flex cursor-pointer items-center justify-center gap-1.5 rounded-2xl border-2 px-3 py-2.5 text-sm font-bold transition active:translate-y-0.5 whitespace-nowrap ${
+              className={`font-display col-span-2 flex cursor-pointer items-center justify-center gap-1.5 rounded-2xl border-2 px-3 py-2 text-sm font-bold transition active:translate-y-0.5 whitespace-nowrap ${
                 theme.isDark
                   ? 'border-white/20 bg-white/8 text-white hover:bg-white/14'
                   : 'border-slate-900/20 bg-white/75 text-slate-900 hover:bg-white'
@@ -358,15 +441,40 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             </button>
           </div>
 
-          {/* Primary Play Action */}
-          <button
-            type="button"
-            onClick={() => onStartPack(selectedTheme)}
-            className="font-display flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-2xl bg-slate-900 px-6 py-3.5 text-lg font-bold text-amber-300 shadow-[0_6px_0_#020617,0_14px_28px_-6px_rgba(15,23,42,0.38)] transition hover:bg-slate-800 active:translate-y-1 active:shadow-[0_2px_0_#020617] whitespace-nowrap"
-          >
-            <Play className="h-5 w-5 fill-current" />
-            <span>Play {theme.shortName}</span>
-          </button>
+          {/* Primary Play Action (or View Locked Walls when a locked pack is selected) */}
+          {selectedUnlocked ? (
+            <button
+              type="button"
+              onClick={() => onStartPack(selectedTheme)}
+              className="font-display flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-2xl bg-slate-900 px-6 py-3.5 text-lg font-bold text-amber-300 shadow-[0_6px_0_#020617,0_14px_28px_-6px_rgba(15,23,42,0.38)] transition hover:bg-slate-800 active:translate-y-1 active:shadow-[0_2px_0_#020617] whitespace-nowrap"
+            >
+              <Play className="h-5 w-5 fill-current" />
+              <span>Play {theme.shortName}</span>
+            </button>
+          ) : (
+            <div className="w-full">
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  onOpenLevels(selectedTheme);
+                }}
+                className={`font-display flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 px-5 py-3 text-base font-bold transition active:translate-y-0.5 whitespace-nowrap ${
+                  theme.isDark
+                    ? 'border-white/25 bg-white/10 text-slate-100 hover:bg-white/15'
+                    : 'border-slate-900/25 bg-white/80 text-slate-800 hover:bg-white'
+                }`}
+              >
+                <Lock className="h-4 w-4 shrink-0" />
+                <span>View {theme.shortName} Walls</span>
+              </button>
+              {selectedRequirement && (
+                <p className="font-mono-num mt-1.5 text-center text-[11px] font-semibold opacity-75 lg:text-left">
+                  Clear all {selectedRequirement.total} {selectedRequirement.prevPackName} walls to unlock ({selectedRequirement.cleared}/{selectedRequirement.total})
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Right Zone: Live Interactive Hero Wall (Try Peeling Right on the Title Screen!) */}

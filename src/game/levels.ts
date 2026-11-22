@@ -1,5 +1,5 @@
 import { generateSolvableLevel, verifyLevelSolvable } from './solver';
-import { LevelDef, ThemeId, ThemeMeta } from './types';
+import { DailyMission, LevelDef, LevelRecord, ThemeId, ThemeMeta } from './types';
 
 export const LEVELS_PER_PACK = 18;
 
@@ -325,6 +325,42 @@ function hashDateKey(dateKey: string): number {
   return h >>> 0;
 }
 
+export function getDailyMission(dateKey: string = getTodayDateKey()): DailyMission {
+  const hash = hashDateKey(`sticky-notes-daily-mission:${dateKey}`);
+  const [y, m, d] = dateKey.split('-').map(Number);
+  const dayOfWeek = new Date(y, (m || 1) - 1, d || 1).getDay();
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+  const pool: DailyMission[] = [
+    {
+      kind: 'max_bumps',
+      target: 2,
+      label: 'Clear with < 2 bumps',
+      rewardTitle: 'Steady Hand Seal',
+    },
+    {
+      kind: 'max_time',
+      target: isWeekend ? 45 : 30,
+      label: isWeekend ? 'Clear in < 45s' : 'Clear in < 30s',
+      rewardTitle: 'Swift Peel Seal',
+    },
+    {
+      kind: 'no_hints',
+      target: 0,
+      label: 'Clear with no hints',
+      rewardTitle: 'Pure Logic Seal',
+    },
+    {
+      kind: 'min_streak',
+      target: 5,
+      label: 'Reach ×5 clean streak',
+      rewardTitle: 'Chain Flow Seal',
+    },
+  ];
+
+  return pool[hash % pool.length];
+}
+
 export function createDailyLevel(dateKey: string = getTodayDateKey()): LevelDef {
   const hash = hashDateKey(`sticky-notes-daily:${dateKey}`);
   const [y, m, d] = dateKey.split('-').map(Number);
@@ -337,7 +373,7 @@ export function createDailyLevel(dateKey: string = getTodayDateKey()): LevelDef 
   const obstacleCount = isWeekend ? 3 : 2;
   const doubleCount = isWeekend ? 4 : 2 + (hash % 2);
 
-  return generateSolvableLevel({
+  const generated = generateSolvableLevel({
     seed: hash,
     id: `daily-${dateKey}`,
     packId,
@@ -352,4 +388,83 @@ export function createDailyLevel(dateKey: string = getTodayDateKey()): LevelDef 
     isDaily: true,
     dailyDateKey: dateKey,
   });
+
+  return {
+    ...generated,
+    dailyMission: getDailyMission(dateKey),
+  };
+}
+
+/* =========================================================================
+   PROGRESSIVE PACK UNLOCK CHAIN:
+   Fridge (unlocked) -> Cork Board -> Drafting -> Midnight
+   ========================================================================= */
+
+export function getPreviousPackId(packId: ThemeId): ThemeId | null {
+  const idx = THEME_ORDER.indexOf(packId);
+  return idx > 0 ? THEME_ORDER[idx - 1] : null;
+}
+
+export function getNextPackId(packId: ThemeId): ThemeId | null {
+  const idx = THEME_ORDER.indexOf(packId);
+  return idx >= 0 && idx + 1 < THEME_ORDER.length ? THEME_ORDER[idx + 1] : null;
+}
+
+export function getPackClearedCount(
+  packId: ThemeId,
+  records: Record<string, LevelRecord>
+): number {
+  return PACK_LEVELS[packId].reduce(
+    (count, lvl) => count + (records[lvl.id] ? 1 : 0),
+    0
+  );
+}
+
+export function isPackCompleted(
+  packId: ThemeId,
+  records: Record<string, LevelRecord>
+): boolean {
+  const levels = PACK_LEVELS[packId];
+  return levels.every((lvl) => Boolean(records[lvl.id]));
+}
+
+export function isPackUnlocked(
+  packId: ThemeId,
+  records: Record<string, LevelRecord>
+): boolean {
+  const idx = THEME_ORDER.indexOf(packId);
+  if (idx <= 0) return true; // Fridge is always unlocked
+  for (let i = 0; i < idx; i++) {
+    if (!isPackCompleted(THEME_ORDER[i], records)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+export function getPackUnlockRequirement(
+  packId: ThemeId,
+  records: Record<string, LevelRecord>
+): { prevPackId: ThemeId; prevPackName: string; cleared: number; total: number } | null {
+  if (isPackUnlocked(packId, records)) return null;
+  const prevPackId = getPreviousPackId(packId);
+  if (!prevPackId) return null;
+  const total = PACK_LEVELS[prevPackId].length;
+  const cleared = getPackClearedCount(prevPackId, records);
+  return {
+    prevPackId,
+    prevPackName: THEMES[prevPackId].shortName,
+    cleared,
+    total,
+  };
+}
+
+export function getHighestUnlockedPack(records: Record<string, LevelRecord>): ThemeId {
+  let highest: ThemeId = 'fridge';
+  for (const id of THEME_ORDER) {
+    if (isPackUnlocked(id, records)) {
+      highest = id;
+    }
+  }
+  return highest;
 }

@@ -41,6 +41,15 @@ export interface ObstacleSpec {
   variant: 0 | 1 | 2;
 }
 
+export type DailyMissionKind = 'max_bumps' | 'max_time' | 'no_hints' | 'min_streak';
+
+export interface DailyMission {
+  kind: DailyMissionKind;
+  target: number;
+  label: string;
+  rewardTitle: string;
+}
+
 export interface LevelDef {
   id: string;
   packId: ThemeId;
@@ -55,6 +64,7 @@ export interface LevelDef {
   endlessNumber?: number;
   isDaily?: boolean;
   dailyDateKey?: string;
+  dailyMission?: DailyMission;
 }
 
 export interface ThemeMeta {
@@ -101,6 +111,7 @@ export interface LevelRecord {
   bestBumps: number;
   bestTimeSec: number;
   bestTimeMs?: number;
+  dailyMissionCompleted?: boolean;
 }
 
 export interface SavedProgress {
@@ -114,6 +125,7 @@ export interface SavedProgress {
   lastTheme: ThemeId;
   endlessBestStreak: number;
   endlessCurrentLevel: number;
+  newlyUnlockedPacks: ThemeId[];
 }
 
 export interface ParticleBurstRequest {

@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  CheckCircle2,
   ChevronDown,
   Lightbulb,
   Music,
   Pause,
   RotateCcw,
   Star,
+  Target,
   Timer,
   Undo2,
   Volume2,
@@ -26,9 +28,11 @@ import { sound } from './game/audio';
 import {
   createDailyLevel,
   createEndlessLevel,
+  getHighestUnlockedPack,
+  getNextPackId,
   getTodayDateKey,
+  isPackUnlocked,
   PACK_LEVELS,
-  THEME_ORDER,
   THEMES,
 } from './game/levels';
 import { checkNotePath, findBestHintNote, PAPER_HEX } from './game/solver';
@@ -41,6 +45,7 @@ import {
 import {
   ActiveNote,
   BlockerFeedback,
+  DailyMission,
   Direction,
   GameScreen,
   HintState,
@@ -50,6 +55,22 @@ import {
   ThemeId,
   UndoEntry,
 } from './game/types';
+
+function evaluateDailyMission(
+  mission: DailyMission,
+  stats: { bumps: number; elapsedMs: number; hintsUsed: number; maxCombo: number }
+): boolean {
+  switch (mission.kind) {
+    case 'max_bumps':
+      return stats.bumps < mission.target;
+    case 'max_time':
+      return stats.elapsedMs < mission.target * 1000;
+    case 'no_hints':
+      return stats.hintsUsed === 0;
+    case 'min_streak':
+      return stats.maxCombo >= mission.target;
+  }
+}
 
 function instantiateNotes(level: LevelDef): ActiveNote[] {
   return level.notes.map((spec, idx) => ({
@@ -78,22 +99,27 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [boardTransition, setBoardTransition] = useState<'idle' | 'out' | 'in'>('idle');
   const [screen, setScreen] = useState<GameScreen>('TITLE_MENU');
-  const [selectedTheme, setSelectedTheme] = useState<ThemeId>(progress.lastTheme);
+  const initialSafeTheme: ThemeId = isPackUnlocked(progress.lastTheme, progress.records)
+    ? progress.lastTheme
+    : 'fridge';
+  const [selectedTheme, setSelectedTheme] = useState<ThemeId>(initialSafeTheme);
   const [currentLevel, setCurrentLevel] = useState<LevelDef>(
-    () => PACK_LEVELS[progress.lastTheme][0]
+    () => PACK_LEVELS[initialSafeTheme][0]
   );
 
   const [notes, setNotes] = useState<ActiveNote[]>(() =>
-    instantiateNotes(PACK_LEVELS[progress.lastTheme][0])
+    instantiateNotes(PACK_LEVELS[initialSafeTheme][0])
   );
   const [peelingGhosts, setPeelingGhosts] = useState<PeelingGhost[]>([]);
   const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
   const [bumps, setBumps] = useState(0);
+  const [hintsUsed, setHintsUsed] = useState(0);
   const [hint, setHint] = useState<HintState | null>(null);
   const [blockerFeedback, setBlockerFeedback] = useState<BlockerFeedback | null>(null);
   const [animateSpawn, setAnimateSpawn] = useState(true);
   const [levelInstanceKey, setLevelInstanceKey] = useState('init-0');
   const [showLevelPicker, setShowLevelPicker] = useState(false);
+  const [pickerInitialPack, setPickerInitialPack] = useState<ThemeId | undefined>(undefined);
 
   // Combo & timing tracking
   const [combo, setCombo] = useState(0);
@@ -115,6 +141,8 @@ export default function App() {
     isNewBestTime: boolean;
     sheets: number;
     maxCombo: number;
+    dailyMissionCompleted: boolean;
+    newlyUnlockedPack: ThemeId | null;
   }>({
     stars: 3,
     elapsedSec: 0,
@@ -123,6 +151,8 @@ export default function App() {
     isNewBestTime: false,
     sheets: 0,
     maxCombo: 1,
+    dailyMissionCompleted: false,
+    newlyUnlockedPack: null,
   });
   const [failedElapsedSec, setFailedElapsedSec] = useState(0);
 
@@ -171,9 +201,12 @@ export default function App() {
     };
   }, []);
 
-  // Accurate pause-aware stopwatch for Time Attack mode
+  // Accurate pause-aware stopwatch for Time Attack mode and Daily Time Missions
   const isTimerRunning =
     screen === 'PLAYING' && !showLevelPicker && boardTransition !== 'out';
+  const needsLiveTimerTick =
+    progress.timeAttackEnabled ||
+    (Boolean(currentLevel.isDaily) && currentLevel.dailyMission?.kind === 'max_time');
 
   useEffect(() => {
     if (!isTimerRunning) {
@@ -186,7 +219,7 @@ export default function App() {
     }
 
     runStartMsRef.current = performance.now();
-    if (!progress.timeAttackEnabled) {
+    if (!needsLiveTimerTick) {
       return () => {
         if (runStartMsRef.current !== null) {
           accumulatedMsRef.current += performance.now() - runStartMsRef.current;
@@ -208,7 +241,7 @@ export default function App() {
         runStartMsRef.current = null;
       }
     };
-  }, [isTimerRunning, progress.timeAttackEnabled]);
+  }, [isTimerRunning, needsLiveTimerTick]);
 
   const getCurrentElapsedMs = useCallback(() => {
     const runningDelta =
@@ -222,11 +255,14 @@ export default function App() {
     if (endModalTimerRef.current) window.clearTimeout(endModalTimerRef.current);
 
     setCurrentLevel(level);
-    setSelectedTheme(level.packId);
+    if (!level.isDaily && !level.isEndless) {
+      setSelectedTheme(level.packId);
+    }
     setNotes(instantiateNotes(level));
     setPeelingGhosts([]);
     setUndoStack([]);
     setBumps(0);
+    setHintsUsed(0);
     setHint(null);
     setBlockerFeedback(null);
     setCombo(0);
@@ -242,9 +278,23 @@ export default function App() {
     setShowLevelPicker(false);
     setScreen('PLAYING');
 
-    setProgress((prev) =>
-      prev.lastTheme === level.packId ? prev : { ...prev, lastTheme: level.packId }
-    );
+    setProgress((prev) => {
+      const clearNewBadge =
+        !level.isDaily &&
+        !level.isEndless &&
+        prev.newlyUnlockedPacks.includes(level.packId);
+      const nextLastTheme =
+        !level.isDaily && !level.isEndless ? level.packId : prev.lastTheme;
+
+      if (!clearNewBadge && prev.lastTheme === nextLastTheme) return prev;
+      return {
+        ...prev,
+        lastTheme: nextLastTheme,
+        newlyUnlockedPacks: clearNewBadge
+          ? prev.newlyUnlockedPacks.filter((id) => id !== level.packId)
+          : prev.newlyUnlockedPacks,
+      };
+    });
   }, []);
 
   const startLevel = useCallback(
@@ -280,15 +330,25 @@ export default function App() {
     setScreen('TITLE_MENU');
   }, []);
 
+  const handleOpenLevelPicker = useCallback((packOverride?: ThemeId) => {
+    setPickerInitialPack(packOverride);
+    setShowLevelPicker(true);
+  }, []);
+
   const handleStartPack = useCallback(
     (themeId: ThemeId) => {
+      if (!isPackUnlocked(themeId, progress.records)) {
+        sound.playClick();
+        handleOpenLevelPicker(themeId);
+        return;
+      }
       sound.playClick();
       const packLevels = PACK_LEVELS[themeId];
       const firstUnfinished =
         packLevels.find((l) => !progress.records[l.id]) ?? packLevels[0];
       startLevel(firstUnfinished);
     },
-    [progress.records, startLevel]
+    [handleOpenLevelPicker, progress.records, startLevel]
   );
 
   const handleStartDaily = useCallback(() => {
@@ -300,11 +360,14 @@ export default function App() {
   const handleStartEndless = useCallback(
     (themeOverride?: ThemeId) => {
       sound.playClick();
-      const targetTheme = themeOverride ?? selectedTheme;
+      const candidate = themeOverride ?? selectedTheme;
+      const targetTheme = isPackUnlocked(candidate, progress.records)
+        ? candidate
+        : getHighestUnlockedPack(progress.records);
       const lvl = createEndlessLevel(progress.endlessCurrentLevel, targetTheme);
       startLevel(lvl);
     },
-    [progress.endlessCurrentLevel, selectedTheme, startLevel]
+    [progress.endlessCurrentLevel, progress.records, selectedTheme, startLevel]
   );
 
   const triggerVictory = useCallback(
@@ -331,6 +394,39 @@ export default function App() {
       const isNewBestTime =
         recordTimeMs !== undefined && (prevBestMs === undefined || recordTimeMs < prevBestMs);
 
+      const missionPassedThisRun =
+        Boolean(currentLevel.isDaily && currentLevel.dailyMission) &&
+        evaluateDailyMission(currentLevel.dailyMission!, {
+          bumps: finalBumps,
+          elapsedMs,
+          hintsUsed,
+          maxCombo: finalMaxCombo,
+        });
+      const dailyMissionCompleted = Boolean(
+        missionPassedThisRun || existingRecord?.dailyMissionCompleted
+      );
+
+      // Check whether completing this wall unlocks the next category pack!
+      let newlyUnlockedPack: ThemeId | null = null;
+      if (!currentLevel.isDaily && !currentLevel.isEndless) {
+        const nextPack = getNextPackId(currentLevel.packId);
+        if (nextPack && !isPackUnlocked(nextPack, progress.records)) {
+          const nextRecords = {
+            ...progress.records,
+            [currentLevel.id]: mergeLevelRecord(
+              progress.records[currentLevel.id],
+              stars,
+              finalBumps,
+              elapsedSec,
+              recordTimeMs
+            ),
+          };
+          if (isPackUnlocked(nextPack, nextRecords)) {
+            newlyUnlockedPack = nextPack;
+          }
+        }
+      }
+
       setVictoryStats({
         stars,
         elapsedSec,
@@ -339,6 +435,8 @@ export default function App() {
         isNewBestTime,
         sheets: initialTotalSheets,
         maxCombo: finalMaxCombo,
+        dailyMissionCompleted,
+        newlyUnlockedPack,
       });
 
       sound.playVictory();
@@ -352,7 +450,8 @@ export default function App() {
             stars,
             finalBumps,
             elapsedSec,
-            recordTimeMs
+            recordTimeMs,
+            missionPassedThisRun
           );
         }
         if (currentLevel.isEndless) {
@@ -363,18 +462,26 @@ export default function App() {
             endlessBestStreak: Math.max(prev.endlessBestStreak, clearedNum),
           };
         }
+
+        const nextRecords = {
+          ...prev.records,
+          [currentLevel.id]: mergeLevelRecord(
+            prev.records[currentLevel.id],
+            stars,
+            finalBumps,
+            elapsedSec,
+            recordTimeMs
+          ),
+        };
+        const nextNewlyUnlocked =
+          newlyUnlockedPack && !prev.newlyUnlockedPacks.includes(newlyUnlockedPack)
+            ? [...prev.newlyUnlockedPacks, newlyUnlockedPack]
+            : prev.newlyUnlockedPacks;
+
         return {
           ...prev,
-          records: {
-            ...prev.records,
-            [currentLevel.id]: mergeLevelRecord(
-              prev.records[currentLevel.id],
-              stars,
-              finalBumps,
-              elapsedSec,
-              recordTimeMs
-            ),
-          },
+          records: nextRecords,
+          newlyUnlockedPacks: nextNewlyUnlocked,
         };
       });
 
@@ -385,6 +492,7 @@ export default function App() {
     [
       currentLevel,
       getCurrentElapsedMs,
+      hintsUsed,
       initialTotalSheets,
       progress.dailyRecords,
       progress.records,
@@ -544,6 +652,7 @@ export default function App() {
         checkNotePath(existing, notes, obstacles, currentLevel.rows, currentLevel.cols).clear
       ) {
         sound.playHint();
+        setHintsUsed((prev) => prev + 1);
         setHint({ noteId: existing.id, tier: 2 });
         return;
       }
@@ -552,6 +661,7 @@ export default function App() {
     const best = findBestHintNote(notes, obstacles, currentLevel.rows, currentLevel.cols);
     if (best) {
       sound.playHint();
+      setHintsUsed((prev) => prev + 1);
       setHint({ noteId: best.id, tier: 1 });
     }
   }, [currentLevel.cols, currentLevel.rows, hint, notes, obstacles, screen]);
@@ -590,8 +700,14 @@ export default function App() {
 
   const handleNextLevel = useCallback(() => {
     sound.playClick();
+    if (victoryStats.newlyUnlockedPack) {
+      startLevel(PACK_LEVELS[victoryStats.newlyUnlockedPack][0], true);
+      return;
+    }
+
     if (currentLevel.isDaily) {
-      startLevel(createEndlessLevel(progress.endlessCurrentLevel, currentLevel.packId), true);
+      const endlessTheme = getHighestUnlockedPack(progress.records);
+      startLevel(createEndlessLevel(progress.endlessCurrentLevel, endlessTheme), true);
       return;
     }
 
@@ -604,12 +720,29 @@ export default function App() {
     const packLevels = PACK_LEVELS[currentLevel.packId];
     if (currentLevel.indexInPack + 1 < packLevels.length) {
       startLevel(packLevels[currentLevel.indexInPack + 1], true);
-    } else {
-      const nextPackIdx = (THEME_ORDER.indexOf(currentLevel.packId) + 1) % THEME_ORDER.length;
-      const nextPack = THEME_ORDER[nextPackIdx];
-      startLevel(PACK_LEVELS[nextPack][0], true);
+      return;
     }
-  }, [currentLevel, progress.endlessCurrentLevel, startLevel]);
+
+    // Reached final level in pack: enter next pack if unlocked, else finish remaining walls in this pack
+    const nextPack = getNextPackId(currentLevel.packId);
+    if (nextPack && isPackUnlocked(nextPack, progress.records)) {
+      startLevel(PACK_LEVELS[nextPack][0], true);
+      return;
+    }
+
+    const firstUnfinishedInPack = packLevels.find((l) => !progress.records[l.id]);
+    if (firstUnfinishedInPack) {
+      startLevel(firstUnfinishedInPack, true);
+    } else {
+      startLevel(PACK_LEVELS.fridge[0], true);
+    }
+  }, [
+    currentLevel,
+    progress.endlessCurrentLevel,
+    progress.records,
+    startLevel,
+    victoryStats.newlyUnlockedPack,
+  ]);
 
   // Keyboard shortcuts across screens
   useEffect(() => {
@@ -738,6 +871,48 @@ export default function App() {
     !currentLevel.isDaily &&
     currentLevel.indexInPack + 1 < PACK_LEVELS[currentLevel.packId].length;
 
+  const nextPackId = getNextPackId(currentLevel.packId);
+  const nextPackUnlocked = Boolean(
+    nextPackId && isPackUnlocked(nextPackId, progress.records)
+  );
+
+  // Live Daily Mission status (shown above board during Daily Puzzle)
+  const dailyMissionLive = useMemo(() => {
+    if (!currentLevel.isDaily || !currentLevel.dailyMission) return null;
+    const m = currentLevel.dailyMission;
+    if (m.kind === 'max_bumps') {
+      const failed = bumps >= m.target;
+      return {
+        label: m.label,
+        status: failed ? 'Missed' : `${bumps}/${m.target - 1} bumps`,
+        state: failed ? ('missed' as const) : ('active' as const),
+      };
+    }
+    if (m.kind === 'max_time') {
+      const failed = liveElapsedMs >= m.target * 1000;
+      const remSec = Math.max(0, (m.target * 1000 - liveElapsedMs) / 1000);
+      return {
+        label: m.label,
+        status: failed ? 'Time up' : `${remSec.toFixed(1)}s left`,
+        state: failed ? ('missed' as const) : ('active' as const),
+      };
+    }
+    if (m.kind === 'no_hints') {
+      const failed = hintsUsed > 0;
+      return {
+        label: m.label,
+        status: failed ? 'Hint used' : '0 hints',
+        state: failed ? ('missed' as const) : ('active' as const),
+      };
+    }
+    const met = maxCombo >= m.target;
+    return {
+      label: m.label,
+      status: met ? `×${maxCombo} Met` : `×${maxCombo}/×${m.target}`,
+      state: met ? ('met' as const) : ('active' as const),
+    };
+  }, [bumps, currentLevel, hintsUsed, liveElapsedMs, maxCombo]);
+
   return (
     <>
       <ParticleCanvas ref={particleRef} />
@@ -757,6 +932,7 @@ export default function App() {
           musicMuted={progress.musicMuted}
           onSelectTheme={setSelectedTheme}
           onStartPack={handleStartPack}
+          onOpenLevels={handleOpenLevelPicker}
           onStartDaily={handleStartDaily}
           onStartEndless={() => handleStartEndless()}
           onToggleMute={handleToggleMute}
@@ -791,7 +967,7 @@ export default function App() {
                 type="button"
                 onClick={() => {
                   sound.playClick();
-                  setShowLevelPicker(true);
+                  handleOpenLevelPicker(currentLevel.packId);
                 }}
                 aria-label={`Current level: ${currentLevel.title}. Tap to switch wall`}
                 className={`group flex h-10 min-w-0 cursor-pointer items-center gap-1.5 rounded-xl px-3 text-left transition active:scale-[0.98] ${
@@ -962,6 +1138,39 @@ export default function App() {
               )}
             </div>
 
+            {/* Daily Mission Goal Strip (Daily Puzzle only, unboxed inline typography above board) */}
+            {dailyMissionLive && (
+              <div className="z-20 flex w-full max-w-[540px] items-center justify-between gap-2 px-1 text-xs font-semibold">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  {dailyMissionLive.state === 'met' ? (
+                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                  ) : (
+                    <Target
+                      className={`h-3.5 w-3.5 shrink-0 ${
+                        dailyMissionLive.state === 'missed'
+                          ? 'text-rose-500 opacity-75'
+                          : 'text-amber-500'
+                      }`}
+                    />
+                  )}
+                  <span className="truncate opacity-85">
+                    Daily Mission: {dailyMissionLive.label}
+                  </span>
+                </div>
+                <span
+                  className={`font-mono-num shrink-0 font-bold ${
+                    dailyMissionLive.state === 'met'
+                      ? 'text-emerald-500'
+                      : dailyMissionLive.state === 'missed'
+                        ? 'text-rose-500'
+                        : 'text-amber-500'
+                  }`}
+                >
+                  {dailyMissionLive.status}
+                </span>
+              </div>
+            )}
+
             {progress.timeAttackEnabled && combo >= 2 && (
               <div
                 key={`combo-${combo}`}
@@ -1055,8 +1264,12 @@ export default function App() {
       {showLevelPicker && (
         <LevelPickerModal
           currentLevel={currentLevel}
+          initialPack={pickerInitialPack}
           progress={progress}
-          onSelectLevel={(lvl) => startLevel(lvl, true)}
+          onSelectLevel={(lvl) => {
+            if (!isPackUnlocked(lvl.packId, progress.records)) return;
+            startLevel(lvl, true);
+          }}
           onSelectDaily={handleStartDaily}
           onSelectEndless={(packId) => handleStartEndless(packId)}
           onClose={() => setShowLevelPicker(false)}
@@ -1076,7 +1289,7 @@ export default function App() {
           onOpenLevels={() => {
             sound.playClick();
             setScreen('PLAYING');
-            setShowLevelPicker(true);
+            handleOpenLevelPicker(currentLevel.packId);
           }}
           onToggleMute={handleToggleMute}
           onToggleMusic={handleToggleMusic}
@@ -1097,13 +1310,18 @@ export default function App() {
           isNewBestTime={victoryStats.isNewBestTime}
           maxCombo={victoryStats.maxCombo}
           dailyStreak={progress.dailyStreak}
+          dailyMissionCompleted={victoryStats.dailyMissionCompleted}
+          newlyUnlockedPack={victoryStats.newlyUnlockedPack}
           hasNextLevelInPack={hasNextInPack}
+          nextPackUnlocked={nextPackUnlocked}
           onReplay={handleRestart}
           onNext={handleNextLevel}
           onHome={handleGoHome}
           onOpenLevels={() => {
             sound.playClick();
-            setShowLevelPicker(true);
+            handleOpenLevelPicker(
+              victoryStats.newlyUnlockedPack ?? currentLevel.packId
+            );
           }}
         />
       )}
@@ -1118,7 +1336,7 @@ export default function App() {
           onHome={handleGoHome}
           onOpenLevels={() => {
             sound.playClick();
-            setShowLevelPicker(true);
+            handleOpenLevelPicker(currentLevel.packId);
           }}
         />
       )}

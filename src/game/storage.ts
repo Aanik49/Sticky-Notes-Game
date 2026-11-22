@@ -13,6 +13,7 @@ const DEFAULT_PROGRESS: SavedProgress = {
   lastTheme: 'fridge',
   endlessBestStreak: 0,
   endlessCurrentLevel: 1,
+  newlyUnlockedPacks: [],
 };
 
 export function loadProgress(): SavedProgress {
@@ -31,6 +32,9 @@ export function loadProgress(): SavedProgress {
       lastTheme: (parsed.lastTheme as ThemeId) ?? 'fridge',
       endlessBestStreak: parsed.endlessBestStreak ?? 0,
       endlessCurrentLevel: Math.max(1, parsed.endlessCurrentLevel ?? 1),
+      newlyUnlockedPacks: Array.isArray(parsed.newlyUnlockedPacks)
+        ? (parsed.newlyUnlockedPacks as ThemeId[])
+        : [],
     };
   } catch {
     return { ...DEFAULT_PROGRESS };
@@ -50,14 +54,17 @@ export function mergeLevelRecord(
   stars: 1 | 2 | 3,
   bumps: number,
   timeSec: number,
-  timeMs?: number
+  timeMs?: number,
+  dailyMissionCompleted?: boolean
 ): LevelRecord {
+  const missionDone = Boolean(existing?.dailyMissionCompleted || dailyMissionCompleted);
   if (!existing) {
     return {
       stars,
       bestBumps: bumps,
       bestTimeSec: timeSec,
       ...(timeMs !== undefined ? { bestTimeMs: timeMs } : {}),
+      ...(missionDone ? { dailyMissionCompleted: true } : {}),
     };
   }
   const prevMs = existing.bestTimeMs;
@@ -73,6 +80,7 @@ export function mergeLevelRecord(
     bestBumps: Math.min(existing.bestBumps, bumps),
     bestTimeSec: Math.min(existing.bestTimeSec, timeSec),
     ...(nextBestMs !== undefined ? { bestTimeMs: nextBestMs } : {}),
+    ...(missionDone ? { dailyMissionCompleted: true } : {}),
   };
 }
 
@@ -91,7 +99,8 @@ export function applyDailyCompletion(
   stars: 1 | 2 | 3,
   bumps: number,
   timeSec: number,
-  timeMs?: number
+  timeMs?: number,
+  dailyMissionCompleted?: boolean
 ): SavedProgress {
   const alreadyCompletedToday = Boolean(prev.dailyRecords[dateKey]);
   let nextStreak = prev.dailyStreak;
@@ -115,7 +124,8 @@ export function applyDailyCompletion(
         stars,
         bumps,
         timeSec,
-        timeMs
+        timeMs,
+        dailyMissionCompleted
       ),
     },
     dailyStreak: nextStreak,
