@@ -158,8 +158,10 @@ export default function App() {
 
   // Keyboard navigation focus cursor
   const [focusedCell, setFocusedCell] = useState<{ r: number; c: number } | null>(null);
+  const [isCelebratingClear, setIsCelebratingClear] = useState(false);
 
   const particleRef = useRef<ParticleCanvasHandle | null>(null);
+  const boardContainerRef = useRef<HTMLDivElement | null>(null);
   const activeTheme = THEMES[currentLevel.packId];
   const obstacles = currentLevel.obstacles ?? [];
   const sheetsRemaining = useMemo(() => countTotalSheets(notes), [notes]);
@@ -206,7 +208,7 @@ export default function App() {
 
   // Accurate pause-aware stopwatch for Time Attack mode and Daily Time Missions
   const isTimerRunning =
-    screen === 'PLAYING' && !showLevelPicker && boardTransition !== 'out';
+    screen === 'PLAYING' && !showLevelPicker && boardTransition !== 'out' && !isCelebratingClear;
   const needsLiveTimerTick =
     progress.timeAttackEnabled ||
     (Boolean(currentLevel.isDaily) && currentLevel.dailyMission?.kind === 'max_time');
@@ -278,6 +280,7 @@ export default function App() {
     runStartMsRef.current = performance.now();
     setLiveElapsedMs(0);
     lastPeelTsRef.current = 0;
+    setIsCelebratingClear(false);
     setShowLevelPicker(false);
     setScreen('PLAYING');
 
@@ -329,6 +332,7 @@ export default function App() {
   const handleGoHome = useCallback(() => {
     if (endModalTimerRef.current) window.clearTimeout(endModalTimerRef.current);
     sound.playClick();
+    setIsCelebratingClear(false);
     setShowLevelPicker(false);
     setScreen('TITLE_MENU');
   }, []);
@@ -374,7 +378,7 @@ export default function App() {
   );
 
   const triggerVictory = useCallback(
-    (finalBumps: number, finalMaxCombo: number) => {
+    (finalBumps: number, finalMaxCombo: number, lastNotePos?: { x: number; y: number }) => {
       const elapsedMs = getCurrentElapsedMs();
       const elapsedSec = Math.max(1, Math.round(elapsedMs / 1000));
       const stars: 1 | 2 | 3 = finalBumps === 0 ? 3 : finalBumps <= 2 ? 2 : 1;
@@ -442,8 +446,23 @@ export default function App() {
         newlyUnlockedPack,
       });
 
+      setIsCelebratingClear(true);
       sound.playVictory();
-      particleRef.current?.emitVictory(window.innerWidth, window.innerHeight);
+      const boardEl = boardContainerRef.current;
+      if (boardEl) {
+        const bRect = boardEl.getBoundingClientRect();
+        particleRef.current?.emitBoardConfetti(
+          {
+            left: bRect.left,
+            top: bRect.top,
+            width: bRect.width,
+            height: bRect.height,
+          },
+          lastNotePos
+        );
+      } else {
+        particleRef.current?.emitVictory(window.innerWidth, window.innerHeight);
+      }
 
       setProgress((prev) => {
         if (currentLevel.isDaily && currentLevel.dailyDateKey) {
@@ -489,8 +508,9 @@ export default function App() {
       });
 
       endModalTimerRef.current = window.setTimeout(() => {
+        setIsCelebratingClear(false);
         setScreen('VICTORY');
-      }, 310);
+      }, 860);
     },
     [
       currentLevel,
@@ -505,7 +525,7 @@ export default function App() {
 
   const handleTapNote = useCallback(
     (note: ActiveNote, el: HTMLButtonElement | null) => {
-      if (screen !== 'PLAYING' || bumps >= MAX_BUMPS) return;
+      if (screen !== 'PLAYING' || bumps >= MAX_BUMPS || isCelebratingClear) return;
 
       const check = checkNotePath(
         note,
@@ -577,7 +597,7 @@ export default function App() {
         setNotes(nextNotes);
 
         if (nextNotes.length === 0) {
-          triggerVictory(bumps, nextMaxCombo);
+          triggerVictory(bumps, nextMaxCombo, { x: cx, y: cy });
         }
       } else {
         // Blocked collision!
@@ -619,11 +639,11 @@ export default function App() {
         }
       }
     },
-    [bumps, combo, currentLevel, maxCombo, notes, obstacles, screen, triggerVictory]
+    [bumps, combo, currentLevel, isCelebratingClear, maxCombo, notes, obstacles, screen, triggerVictory]
   );
 
   const handleUndo = useCallback(() => {
-    if (screen !== 'PLAYING' || undoStack.length === 0) return;
+    if (screen !== 'PLAYING' || undoStack.length === 0 || isCelebratingClear) return;
     const last = undoStack[undoStack.length - 1];
     setUndoStack((prev) => prev.slice(0, -1));
     setHint(null);
@@ -638,7 +658,7 @@ export default function App() {
       }
       return [...prev, last.note];
     });
-  }, [screen, undoStack]);
+  }, [isCelebratingClear, screen, undoStack]);
 
   const handleRestart = useCallback(() => {
     sound.playClick();
@@ -1210,13 +1230,14 @@ export default function App() {
             )}
 
             <div
-              className={
+              ref={boardContainerRef}
+              className={`relative ${
                 boardTransition === 'out'
                   ? 'board-slide-out'
                   : boardTransition === 'in'
                     ? 'board-slide-in'
                     : ''
-              }
+              }`}
             >
               <GameBoard
                 rows={currentLevel.rows}
@@ -1232,6 +1253,17 @@ export default function App() {
                 focusedCell={focusedCell}
                 onTapNote={handleTapNote}
               />
+
+              {isCelebratingClear && (
+                <div
+                  aria-live="polite"
+                  className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center"
+                >
+                  <div className="combo-pop font-display border-[3px] border-[#111111] bg-[#e4b43c] px-5 py-2 text-lg font-black tracking-wider text-[#111111] uppercase shadow-[5px_5px_0_#111111] sm:text-xl">
+                    Wall Cleared!
+                  </div>
+                </div>
+              )}
             </div>
           </main>
 
