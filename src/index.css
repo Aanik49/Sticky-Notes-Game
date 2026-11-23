@@ -2,9 +2,16 @@
 
 @layer base {
   :root {
-    --font-display: 'Fredoka', system-ui, sans-serif;
+    --font-display: 'Outfit', system-ui, sans-serif;
     --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+    --bauhaus-cream: #f5f0e2;
+    --bauhaus-ink: #111111;
+    --bauhaus-red: #d6302a;
+    --bauhaus-ochre: #e4b43c;
+    --bauhaus-blue: #2b56a3;
+    --bauhaus-orange: #dc6b2f;
+    --bauhaus-teal: #1e6b64;
   }
 
   html,
@@ -30,319 +37,280 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Hard Bauhaus Offset Print Shadows */
+.bauhaus-shadow {
+  box-shadow: 4px 4px 0 #111111;
+}
+
+.bauhaus-shadow-sm {
+  box-shadow: 3px 3px 0 #111111;
+}
+
+.bauhaus-shadow-lg {
+  box-shadow: 6px 6px 0 #111111;
+}
+
 /* =========================================================
-   PHYSICAL WORLD BACKGROUNDS & BOARD SURFACES
+   BAUHAUS GRID ART WORLD BACKGROUNDS & BOARD SURFACES (6 PACKS)
    ========================================================= */
 
-/* PACK 1: KITCHEN FRIDGE (Sunlit pastel mint-steel kitchen + ceramic enamel door) */
+/* PACK 1: FRIDGE — Classic Bauhaus Archival Cream Canvas + Architectural Ink Rules */
 .world-fridge {
-  background:
-    radial-gradient(ellipse 80% 60% at 15% 10%, rgba(255, 252, 240, 0.9) 0%, transparent 60%),
-    linear-gradient(155deg, #e5eef0 0%, #d4e3e7 52%, #c4d7dc 100%);
-  color: #162832;
+  background-color: #f6f1e2;
+  background-image:
+    linear-gradient(rgba(17, 17, 17, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(17, 17, 17, 0.055) 1px, transparent 1px);
+  background-size: 36px 36px;
+  color: #111111;
 }
 
 .board-fridge {
-  background:
-    linear-gradient(125deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0.1) 42%, rgba(255, 255, 255, 0.45) 100%),
-    repeating-linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0.04) 0px,
-      rgba(255, 255, 255, 0.04) 1px,
-      transparent 1px,
-      transparent 4px
-    ),
-    linear-gradient(160deg, #f8fbfc 0%, #eaf1f4 55%, #dfe9ed 100%);
-  border: 3px solid #bcccd2;
-  box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.95),
-    inset 0 -6px 16px rgba(100, 125, 138, 0.16),
-    0 24px 48px -12px rgba(22, 40, 50, 0.2),
-    0 8px 18px -6px rgba(22, 40, 50, 0.12);
+  background-color: #faf6ea;
+  background-image:
+    linear-gradient(rgba(17, 17, 17, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(17, 17, 17, 0.06) 1px, transparent 1px);
+  background-size: 20px 20px;
+  border: 3px solid #111111;
+  box-shadow: 7px 7px 0 #111111;
 }
 
-/* PACK 2: SCHOOL BULLETIN BOARD (Rich warm sunlit cork-amber matching its cork icon) */
+/* PACK 2: CORK BOARD — Bauhaus Ochre / Mustard Gold Studio Wall */
 .world-cork {
-  background-color: #cf9760;
+  background-color: #e6bc53;
   background-image:
-    radial-gradient(ellipse 78% 55% at 82% 10%, rgba(255, 239, 210, 0.55) 0%, transparent 58%),
-    radial-gradient(rgba(94, 52, 20, 0.12) 1.2px, transparent 0),
-    radial-gradient(rgba(255, 232, 198, 0.16) 1.4px, transparent 0),
-    linear-gradient(160deg, #e5bd8d 0%, #d39b64 52%, #bd8149 100%);
-  background-size: 100% 100%, 18px 18px, 26px 26px, 100% 100%;
-  background-position: 0 0, 0 0, 9px 11px, 0 0;
-  color: #261408;
+    linear-gradient(rgba(17, 17, 17, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(17, 17, 17, 0.08) 1px, transparent 1px);
+  background-size: 36px 36px;
+  color: #111111;
 }
 
 .board-cork {
-  background-color: #c28853;
+  background-color: #f6ebd0;
   background-image:
-    radial-gradient(ellipse at 25% 20%, rgba(255, 232, 198, 0.28) 0%, transparent 55%),
-    radial-gradient(rgba(94, 52, 20, 0.28) 1.2px, transparent 0),
-    radial-gradient(rgba(252, 217, 174, 0.26) 1.5px, transparent 0),
-    radial-gradient(rgba(68, 35, 11, 0.2) 1px, transparent 0),
-    linear-gradient(145deg, #cb915b 0%, #b97c46 60%, #a96d3a 100%);
-  background-size: 100% 100%, 15px 15px, 23px 23px, 11px 11px, 100% 100%;
-  background-position: 0 0, 0 0, 8px 10px, 4px 5px, 0 0;
-  border: 12px solid #6b4123;
-  box-shadow:
-    inset 0 6px 18px rgba(42, 21, 7, 0.45),
-    inset 0 0 0 2px #4c2c15,
-    0 0 0 2px #875531,
-    0 26px 52px -12px rgba(47, 30, 20, 0.42);
+    linear-gradient(rgba(17, 17, 17, 0.075) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(17, 17, 17, 0.075) 1px, transparent 1px);
+  background-size: 20px 20px;
+  border: 3px solid #111111;
+  box-shadow: 7px 7px 0 #111111;
 }
 
-/* PACK 3: ARCHITECT'S DRAFTING DESK (Deep emerald-teal cutting mat theme matching its icon) */
+/* PACK 3: DRAFTING — Bauhaus Deep Petrol / Emerald Blueprint Matrix */
 .world-drafting {
-  background-color: #143b36;
+  background-color: #164f49;
   background-image:
-    radial-gradient(ellipse 72% 52% at 18% 8%, rgba(45, 212, 191, 0.16) 0%, transparent 58%),
-    radial-gradient(ellipse 68% 55% at 86% 90%, rgba(16, 185, 129, 0.12) 0%, transparent 60%),
-    linear-gradient(rgba(204, 241, 232, 0.055) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(204, 241, 232, 0.055) 1px, transparent 1px),
-    linear-gradient(160deg, #1e524b 0%, #16403a 54%, #0f2e2a 100%);
-  background-size: 100% 100%, 100% 100%, 28px 28px, 28px 28px, 100% 100%;
-  color: #ecfdf5;
+    linear-gradient(rgba(245, 240, 226, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245, 240, 226, 0.09) 1px, transparent 1px);
+  background-size: 36px 36px;
+  color: #f5f0e2;
 }
 
 .board-drafting {
-  background-color: #215a52;
+  background-color: #1e6b64;
   background-image:
-    linear-gradient(rgba(204, 241, 232, 0.13) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(204, 241, 232, 0.13) 1px, transparent 1px),
-    linear-gradient(rgba(204, 241, 232, 0.24) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(204, 241, 232, 0.24) 1px, transparent 1px),
-    radial-gradient(ellipse at 30% 20%, rgba(56, 148, 134, 0.4) 0%, transparent 70%);
-  background-size: 16px 16px, 16px 16px, 80px 80px, 80px 80px, 100% 100%;
-  border: 4px solid #2b7066;
-  box-shadow:
-    inset 0 0 0 2px rgba(186, 235, 224, 0.28),
-    inset 0 8px 24px rgba(7, 26, 23, 0.45),
-    0 26px 52px -12px rgba(4, 20, 18, 0.58);
+    linear-gradient(rgba(245, 240, 226, 0.14) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245, 240, 226, 0.14) 1px, transparent 1px),
+    linear-gradient(rgba(245, 240, 226, 0.24) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245, 240, 226, 0.24) 1px, transparent 1px);
+  background-size: 16px 16px, 16px 16px, 80px 80px, 80px 80px;
+  border: 3px solid #0b1615;
+  box-shadow: 7px 7px 0 #0b1615;
 }
 
-/* PACK 4: MIDNIGHT STUDIO (Warm desk-lamp lit dark slate pegboard) */
+/* PACK 4: MIDNIGHT — Bauhaus Obsidian Nocturne Grid */
 .world-midnight {
-  background:
-    radial-gradient(ellipse 65% 50% at 20% 8%, rgba(251, 191, 36, 0.12) 0%, transparent 55%),
-    radial-gradient(ellipse 70% 60% at 85% 90%, rgba(99, 102, 241, 0.12) 0%, transparent 60%),
-    linear-gradient(160deg, #1b1d28 0%, #14161f 55%, #0e1017 100%);
-  color: #f3f4f6;
+  background-color: #15171e;
+  background-image:
+    linear-gradient(rgba(245, 240, 226, 0.075) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245, 240, 226, 0.075) 1px, transparent 1px);
+  background-size: 36px 36px;
+  color: #f5f0e2;
 }
 
 .board-midnight {
-  background-color: #212432;
+  background-color: #20232d;
   background-image:
-    radial-gradient(rgba(10, 12, 18, 0.72) 2.2px, transparent 2.4px),
-    radial-gradient(rgba(255, 255, 255, 0.06) 2.2px, transparent 2.4px),
-    radial-gradient(ellipse at 18% 12%, rgba(251, 191, 36, 0.09) 0%, transparent 60%);
-  background-size: 22px 22px, 22px 22px, 100% 100%;
-  background-position: 0 0, 0 1px, 0 0;
-  border: 3px solid #35394d;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 10px 28px rgba(0, 0, 0, 0.55),
-    0 28px 60px -12px rgba(0, 0, 0, 0.65);
+    linear-gradient(rgba(245, 240, 226, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245, 240, 226, 0.09) 1px, transparent 1px);
+  background-size: 20px 20px;
+  border: 3px solid #e4b43c;
+  box-shadow: 7px 7px 0 #07080b;
+}
+
+/* PACK 5: ATELIER — Bauhaus Vermilion Poster Grid */
+.world-atelier {
+  background-color: #b42923;
+  background-image:
+    linear-gradient(rgba(17, 17, 17, 0.13) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(17, 17, 17, 0.13) 1px, transparent 1px);
+  background-size: 36px 36px;
+  color: #faf6ea;
+}
+
+.board-atelier {
+  background-color: #f5efe0;
+  background-image:
+    linear-gradient(rgba(214, 48, 42, 0.11) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(214, 48, 42, 0.11) 1px, transparent 1px);
+  background-size: 20px 20px;
+  border: 3px solid #111111;
+  box-shadow: 7px 7px 0 #111111;
+}
+
+/* PACK 6: GALLERY — Bauhaus Cobalt Constructivist Exhibition Grid */
+.world-gallery {
+  background-color: #21468b;
+  background-image:
+    linear-gradient(rgba(245, 240, 226, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245, 240, 226, 0.1) 1px, transparent 1px);
+  background-size: 36px 36px;
+  color: #faf6ea;
+}
+
+.board-gallery {
+  background-color: #f4efe2;
+  background-image:
+    linear-gradient(rgba(43, 86, 163, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(43, 86, 163, 0.12) 1px, transparent 1px);
+  background-size: 20px 20px;
+  border: 3px solid #111111;
+  box-shadow: 7px 7px 0 #111111;
 }
 
 /* =========================================================
-   TACTILE STICKY NOTE PAPER PHYSICS & ANIMATIONS
+   BAUHAUS STICKY NOTE PAPER GEOMETRY & ANIMATIONS
    ========================================================= */
 
 .sticky-note-card {
   position: absolute;
-  border-radius: 5px 5px 18px 5px;
+  border-radius: 0;
+  border: 2px solid #111111;
   transform-style: preserve-3d;
   will-change: transform, opacity;
   touch-action: manipulation;
+  box-shadow: 2.5px 2.5px 0 #111111;
   transition:
-    transform 170ms cubic-bezier(0.22, 1.35, 0.36, 1),
-    box-shadow 170ms cubic-bezier(0.22, 1, 0.36, 1),
-    filter 150ms ease;
-}
-
-/* Realistic paper grain & matte adhesive header strip */
-.sticky-note-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 22%;
-  border-radius: 5px 5px 0 0;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.38) 0%,
-    rgba(255, 255, 255, 0.1) 65%,
-    rgba(0, 0, 0, 0.03) 100%
-  );
-  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
-  pointer-events: none;
-}
-
-/* Folded & lifted bottom-right paper corner */
-.sticky-note-card::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 22%;
-  max-width: 20px;
-  min-width: 12px;
-  height: 22%;
-  max-height: 20px;
-  min-height: 12px;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.55) 0%,
-    rgba(255, 255, 255, 0.2) 45%,
-    rgba(0, 0, 0, 0.12) 52%,
-    rgba(0, 0, 0, 0.2) 100%
-  );
-  border-top-left-radius: 7px;
-  border-bottom-right-radius: 17px;
-  box-shadow: -2px -2px 4px rgba(0, 0, 0, 0.07);
-  pointer-events: none;
-  transition: transform 160ms ease;
+    transform 150ms cubic-bezier(0.22, 1.35, 0.36, 1),
+    box-shadow 150ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 140ms ease;
 }
 
 .sticky-note-card:hover:not(.is-peeling):not(.is-blocked) {
-  transform: translateY(-3px) scale(1.045) rotate(0deg) !important;
+  transform: translate(-1.5px, -2px) scale(1.03) !important;
+  box-shadow: 4.5px 4.5px 0 #111111;
   z-index: 30;
 }
 
-.sticky-note-card:hover:not(.is-peeling):not(.is-blocked)::after {
-  transform: scale(1.16);
-}
-
 .sticky-note-card:active:not(.is-peeling) {
-  transform: scale(0.95) rotate(var(--tilt, 0deg)) !important;
+  transform: translate(1.5px, 1.5px) scale(0.97) !important;
+  box-shadow: 1px 1px 0 #111111;
 }
 
-/* Paper Color Palette - Warm, tactile, high-contrast ink */
+/* Authentic Bauhaus Primary & Print Pigments (matches reference image) */
 .paper-canary {
-  background: linear-gradient(152deg, #fef39a 0%, #fde047 68%, #f8cf2c 100%);
-  color: #3f2104;
-  box-shadow:
-    0 7px 14px -3px rgba(0, 0, 0, 0.22),
-    0 2px 4px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  background-color: #e4b43c;
+  background-image:
+    linear-gradient(rgba(17, 17, 17, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(17, 17, 17, 0.08) 1px, transparent 1px);
+  background-size: 25% 25%;
+  color: #111111;
 }
 
 .paper-coral {
-  background: linear-gradient(152deg, #fecdd3 0%, #fb7185 74%, #f45a73 100%);
-  color: #4c0519;
-  box-shadow:
-    0 7px 14px -3px rgba(0, 0, 0, 0.22),
-    0 2px 4px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.52);
+  background-color: #d6302a;
+  color: #f5f0e2;
 }
 
 .paper-sky {
-  background: linear-gradient(152deg, #c7ecfe 0%, #5cc8fa 74%, #38b6f5 100%);
-  color: #082f49;
-  box-shadow:
-    0 7px 14px -3px rgba(0, 0, 0, 0.22),
-    0 2px 4px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  background-color: #2b56a3;
+  color: #f5f0e2;
 }
 
 .paper-mint {
-  background: linear-gradient(152deg, #c7f9d4 0%, #5ee089 74%, #3ecf71 100%);
-  color: #052e16;
-  box-shadow:
-    0 7px 14px -3px rgba(0, 0, 0, 0.22),
-    0 2px 4px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  background-color: #f3eee0;
+  background-image:
+    linear-gradient(rgba(17, 17, 17, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(17, 17, 17, 0.09) 1px, transparent 1px);
+  background-size: 25% 25%;
+  color: #111111;
 }
 
 .paper-apricot {
-  background: linear-gradient(152deg, #feddb6 0%, #fb9e48 74%, #f5882c 100%);
-  color: #431407;
-  box-shadow:
-    0 7px 14px -3px rgba(0, 0, 0, 0.22),
-    0 2px 4px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  background-color: #dc6b2f;
+  color: #111111;
 }
 
 .paper-lavender {
-  background: linear-gradient(152deg, #e7d8fe 0%, #c084fc 78%, #a864f7 100%);
-  color: #2e1065;
-  box-shadow:
-    0 7px 14px -3px rgba(0, 0, 0, 0.22),
-    0 2px 4px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  background-color: #1e6b64;
+  color: #f5f0e2;
 }
 
-/* Midnight warm studio lighting lifts paper shadows crisply */
+/* Midnight board lifts note edges with sharp obsidian ink drop */
 .world-midnight .sticky-note-card {
-  box-shadow:
-    0 10px 22px -4px rgba(0, 0, 0, 0.55),
-    0 3px 8px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  border-color: #090a0d;
+  box-shadow: 3px 3px 0 #07080b;
 }
 
 /* 3D Perspective Directional Peel-Off Animations */
 @keyframes peelUp3D {
   0% {
-    transform: perspective(600px) rotateX(0deg) translateY(0) scale(1) rotate(var(--tilt, 0deg));
+    transform: perspective(600px) rotateX(0deg) translateY(0) scale(1);
     opacity: 1;
   }
   20% {
-    transform: perspective(600px) rotateX(-20deg) translateY(7px) scale(1.12) rotate(-3deg);
-    box-shadow: 0 26px 34px -6px rgba(0, 0, 0, 0.32);
+    transform: perspective(600px) rotateX(-18deg) translateY(6px) scale(1.1) rotate(-2deg);
+    box-shadow: 6px 14px 0 rgba(17, 17, 17, 0.45);
     opacity: 1;
   }
   100% {
-    transform: perspective(600px) rotateX(34deg) translateY(-420px) scale(0.86) rotate(-14deg);
+    transform: perspective(600px) rotateX(34deg) translateY(-420px) scale(0.86) rotate(-12deg);
     opacity: 0;
   }
 }
 
 @keyframes peelDown3D {
   0% {
-    transform: perspective(600px) rotateX(0deg) translateY(0) scale(1) rotate(var(--tilt, 0deg));
+    transform: perspective(600px) rotateX(0deg) translateY(0) scale(1);
     opacity: 1;
   }
   20% {
-    transform: perspective(600px) rotateX(20deg) translateY(-7px) scale(1.12) rotate(3deg);
-    box-shadow: 0 26px 34px -6px rgba(0, 0, 0, 0.32);
+    transform: perspective(600px) rotateX(18deg) translateY(-6px) scale(1.1) rotate(2deg);
+    box-shadow: 6px 14px 0 rgba(17, 17, 17, 0.45);
     opacity: 1;
   }
   100% {
-    transform: perspective(600px) rotateX(-34deg) translateY(420px) scale(0.86) rotate(14deg);
+    transform: perspective(600px) rotateX(-34deg) translateY(420px) scale(0.86) rotate(12deg);
     opacity: 0;
   }
 }
 
 @keyframes peelLeft3D {
   0% {
-    transform: perspective(600px) rotateY(0deg) translateX(0) scale(1) rotate(var(--tilt, 0deg));
+    transform: perspective(600px) rotateY(0deg) translateX(0) scale(1);
     opacity: 1;
   }
   20% {
-    transform: perspective(600px) rotateY(22deg) translateX(7px) scale(1.12) rotate(4deg);
-    box-shadow: 0 26px 34px -6px rgba(0, 0, 0, 0.32);
+    transform: perspective(600px) rotateY(20deg) translateX(6px) scale(1.1) rotate(3deg);
+    box-shadow: 6px 14px 0 rgba(17, 17, 17, 0.45);
     opacity: 1;
   }
   100% {
-    transform: perspective(600px) rotateY(-36deg) translateX(-420px) scale(0.86) rotate(-16deg);
+    transform: perspective(600px) rotateY(-36deg) translateX(-420px) scale(0.86) rotate(-14deg);
     opacity: 0;
   }
 }
 
 @keyframes peelRight3D {
   0% {
-    transform: perspective(600px) rotateY(0deg) translateX(0) scale(1) rotate(var(--tilt, 0deg));
+    transform: perspective(600px) rotateY(0deg) translateX(0) scale(1);
     opacity: 1;
   }
   20% {
-    transform: perspective(600px) rotateY(-22deg) translateX(-7px) scale(1.12) rotate(-4deg);
-    box-shadow: 0 26px 34px -6px rgba(0, 0, 0, 0.32);
+    transform: perspective(600px) rotateY(-20deg) translateX(-6px) scale(1.1) rotate(-3deg);
+    box-shadow: 6px 14px 0 rgba(17, 17, 17, 0.45);
     opacity: 1;
   }
   100% {
-    transform: perspective(600px) rotateY(36deg) translateX(420px) scale(0.86) rotate(16deg);
+    transform: perspective(600px) rotateY(36deg) translateX(420px) scale(0.86) rotate(14deg);
     opacity: 0;
   }
 }
@@ -370,28 +338,28 @@
 
 /* Directional Collision Bump Animations */
 @keyframes bumpU {
-  0%, 100% { transform: translateY(0) rotate(var(--tilt, 0deg)); }
-  22% { transform: translateY(-12px) scale(0.96, 1.05) rotate(-3deg); }
-  48% { transform: translateY(4px) scale(1.03, 0.96) rotate(2.5deg); }
-  74% { transform: translateY(-4px) rotate(-1.5deg); }
+  0%, 100% { transform: translateY(0); }
+  22% { transform: translateY(-11px) scale(0.96, 1.05); }
+  48% { transform: translateY(4px) scale(1.03, 0.96); }
+  74% { transform: translateY(-3px); }
 }
 @keyframes bumpD {
-  0%, 100% { transform: translateY(0) rotate(var(--tilt, 0deg)); }
-  22% { transform: translateY(12px) scale(0.96, 1.05) rotate(3deg); }
-  48% { transform: translateY(-4px) scale(1.03, 0.96) rotate(-2.5deg); }
-  74% { transform: translateY(4px) rotate(1.5deg); }
+  0%, 100% { transform: translateY(0); }
+  22% { transform: translateY(11px) scale(0.96, 1.05); }
+  48% { transform: translateY(-4px) scale(1.03, 0.96); }
+  74% { transform: translateY(3px); }
 }
 @keyframes bumpL {
-  0%, 100% { transform: translateX(0) rotate(var(--tilt, 0deg)); }
-  22% { transform: translateX(-12px) scale(1.05, 0.96) rotate(-3deg); }
-  48% { transform: translateX(4px) scale(0.96, 1.03) rotate(2.5deg); }
-  74% { transform: translateX(-4px) rotate(-1.5deg); }
+  0%, 100% { transform: translateX(0); }
+  22% { transform: translateX(-11px) scale(1.05, 0.96); }
+  48% { transform: translateX(4px) scale(0.96, 1.03); }
+  74% { transform: translateX(-3px); }
 }
 @keyframes bumpR {
-  0%, 100% { transform: translateX(0) rotate(var(--tilt, 0deg)); }
-  22% { transform: translateX(12px) scale(1.05, 0.96) rotate(3deg); }
-  48% { transform: translateX(-4px) scale(0.96, 1.03) rotate(-2.5deg); }
-  74% { transform: translateX(4px) rotate(1.5deg); }
+  0%, 100% { transform: translateX(0); }
+  22% { transform: translateX(11px) scale(1.05, 0.96); }
+  48% { transform: translateX(-4px) scale(0.96, 1.03); }
+  74% { transform: translateX(3px); }
 }
 
 .bump-U { animation: bumpU 340ms cubic-bezier(0.36, 0.07, 0.19, 0.97); z-index: 35; }
@@ -401,9 +369,9 @@
 
 /* Blocker Recoil Highlight */
 @keyframes blockerKnock {
-  0%, 100% { transform: scale(1) rotate(var(--tilt, 0deg)); filter: brightness(1); }
-  30% { transform: scale(1.08) rotate(calc(var(--tilt, 0deg) + 4deg)); filter: brightness(1.08); box-shadow: 0 0 0 3px #ef4444, 0 12px 24px rgba(239, 68, 68, 0.42); }
-  65% { transform: scale(0.97) rotate(calc(var(--tilt, 0deg) - 2deg)); box-shadow: 0 0 0 2px #ef4444, 0 8px 18px rgba(239, 68, 68, 0.25); }
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  30% { transform: scale(1.07); filter: brightness(1.08); box-shadow: 0 0 0 3px #d6302a, 5px 5px 0 #111111; }
+  65% { transform: scale(0.97); box-shadow: 0 0 0 2px #d6302a, 3px 3px 0 #111111; }
 }
 .blocker-knock {
   animation: blockerKnock 420ms ease-out;
@@ -413,31 +381,31 @@
 /* Note Spawn Pop-In */
 @keyframes noteSpawn {
   0% {
-    transform: scale(0.55) translateY(-10px) rotate(calc(var(--tilt, 0deg) - 8deg));
+    transform: scale(0.62) translateY(-8px);
     opacity: 0;
   }
   70% {
-    transform: scale(1.05) translateY(0) rotate(calc(var(--tilt, 0deg) + 1deg));
+    transform: scale(1.04) translateY(0);
     opacity: 1;
   }
   100% {
-    transform: scale(1) translateY(0) rotate(var(--tilt, 0deg));
+    transform: scale(1) translateY(0);
     opacity: 1;
   }
 }
 .note-spawn {
-  animation: noteSpawn 280ms cubic-bezier(0.22, 1.35, 0.36, 1) backwards;
+  animation: noteSpawn 260ms cubic-bezier(0.22, 1.35, 0.36, 1) backwards;
 }
 
-/* Hint Gentle Lift Pulse */
+/* Hint Crisp Geometric Lift Pulse */
 @keyframes hintGlow {
   0%, 100% {
-    transform: translateY(-2px) scale(1.02) rotate(var(--tilt, 0deg));
-    box-shadow: 0 0 0 3px #10b981, 0 10px 22px rgba(16, 185, 129, 0.4);
+    transform: translate(-1px, -2px) scale(1.02);
+    box-shadow: 0 0 0 3px #10b981, 4px 4px 0 #111111;
   }
   50% {
-    transform: translateY(-5px) scale(1.07) rotate(0deg);
-    box-shadow: 0 0 0 5px #34d399, 0 16px 30px rgba(16, 185, 129, 0.55);
+    transform: translate(-2px, -4px) scale(1.06);
+    box-shadow: 0 0 0 5px #34d399, 6px 6px 0 #111111;
   }
 }
 .hint-active {
@@ -447,8 +415,8 @@
 
 /* Combo Pop */
 @keyframes comboPop {
-  0% { transform: scale(0.65) translateY(8px); opacity: 0; }
-  30% { transform: scale(1.12) translateY(0); opacity: 1; }
+  0% { transform: scale(0.72) translateY(8px); opacity: 0; }
+  35% { transform: scale(1.08) translateY(0); opacity: 1; }
   100% { transform: scale(1) translateY(0); opacity: 1; }
 }
 .combo-pop {
@@ -499,25 +467,25 @@
 /* Splash Screen Entrance Animations */
 @keyframes splashIconPop {
   0% {
-    transform: scale(0.62) rotate(-10deg) translateY(14px);
+    transform: scale(0.68) translateY(14px);
     opacity: 0;
   }
-  65% {
-    transform: scale(1.07) rotate(3deg) translateY(-3px);
+  68% {
+    transform: scale(1.05) translateY(-2px);
     opacity: 1;
   }
   100% {
-    transform: scale(1) rotate(0deg) translateY(0);
+    transform: scale(1) translateY(0);
     opacity: 1;
   }
 }
 
 @keyframes splashIconFloat {
   0%, 100% {
-    transform: translateY(0) rotate(0deg);
+    transform: translateY(0);
   }
   50% {
-    transform: translateY(-6px) rotate(-2deg);
+    transform: translateY(-5px);
   }
 }
 
@@ -543,12 +511,12 @@
 
 .splash-icon-anim {
   animation:
-    splashIconPop 560ms cubic-bezier(0.22, 1.35, 0.36, 1) forwards,
-    splashIconFloat 2.2s ease-in-out 560ms infinite;
+    splashIconPop 520ms cubic-bezier(0.22, 1.35, 0.36, 1) forwards,
+    splashIconFloat 2.2s ease-in-out 520ms infinite;
 }
 
 .splash-text-anim {
-  animation: splashTextRise 480ms cubic-bezier(0.22, 1, 0.36, 1) 180ms backwards;
+  animation: splashTextRise 460ms cubic-bezier(0.22, 1, 0.36, 1) 160ms backwards;
 }
 
 .splash-bar-anim {
@@ -556,18 +524,18 @@
   animation: splashProgress 1550ms cubic-bezier(0.35, 0, 0.25, 1) 120ms forwards;
 }
 
-/* Unlocked Pack Glow & Specular Shine Effect (Cork, Drafting, Midnight) */
+/* Unlocked Pack Glow & Specular Shine Effect (Cork, Drafting, Midnight, Atelier, Gallery) */
 @keyframes packShineSweep {
   0%, 58% {
     transform: translateX(-160%) skewX(-20deg);
     opacity: 0;
   }
   64% {
-    opacity: 0.9;
+    opacity: 0.92;
   }
   88% {
     transform: translateX(260%) skewX(-20deg);
-    opacity: 0.9;
+    opacity: 0.92;
   }
   92%, 100% {
     transform: translateX(260%) skewX(-20deg);
@@ -590,8 +558,8 @@
   position: relative;
   overflow: hidden;
   box-shadow:
-    0 0 0 1px rgba(var(--pack-glow-rgb, 245, 158, 11), 0.35),
-    0 0 18px -2px rgba(var(--pack-glow-rgb, 245, 158, 11), 0.34);
+    3px 3px 0 #111111,
+    0 0 18px -2px rgba(var(--pack-glow-rgb, 228, 180, 60), 0.48);
 }
 
 .pack-unlocked-shine::after {
@@ -602,25 +570,25 @@
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.14) 24%,
-    rgba(255, 252, 232, 0.62) 50%,
-    rgba(255, 255, 255, 0.14) 76%,
+    rgba(255, 255, 255, 0.18) 24%,
+    rgba(255, 252, 232, 0.72) 50%,
+    rgba(255, 255, 255, 0.18) 76%,
     transparent 100%
   );
   pointer-events: none;
   z-index: 2;
   will-change: transform, opacity;
-  animation: packShineSweep 4.2s cubic-bezier(0.25, 0.8, 0.25, 1) infinite;
+  animation: packShineSweep 4.0s cubic-bezier(0.25, 0.8, 0.25, 1) infinite;
 }
 
 .pack-just-unlocked {
   box-shadow:
-    0 0 0 2px rgba(var(--pack-glow-rgb, 245, 158, 11), 0.65),
-    0 0 26px 2px rgba(var(--pack-glow-rgb, 245, 158, 11), 0.5);
+    4px 4px 0 #111111,
+    0 0 26px 3px rgba(var(--pack-glow-rgb, 228, 180, 60), 0.65);
 }
 
 .pack-just-unlocked::after {
-  animation-duration: 2.3s;
+  animation-duration: 2.2s;
 }
 
 .pack-unlock-aura {
@@ -630,11 +598,11 @@
 /* Daily Mission Reward Seal Pop-In */
 @keyframes rewardSealPop {
   0% {
-    transform: scale(0.45) rotate(-18deg);
+    transform: scale(0.45) rotate(-14deg);
     opacity: 0;
   }
   65% {
-    transform: scale(1.14) rotate(5deg);
+    transform: scale(1.14) rotate(4deg);
     opacity: 1;
   }
   100% {
@@ -679,30 +647,30 @@
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(254, 240, 138, 0.12) 22%,
-    rgba(255, 251, 235, 0.42) 50%,
-    rgba(254, 240, 138, 0.12) 78%,
+    rgba(255, 250, 232, 0.14) 22%,
+    rgba(255, 250, 232, 0.5) 50%,
+    rgba(255, 250, 232, 0.14) 78%,
     transparent 100%
   );
   pointer-events: none;
   z-index: 2;
   will-change: transform, opacity;
-  animation: playBtnShineSweep 3.2s cubic-bezier(0.25, 0.8, 0.25, 1) infinite;
+  animation: playBtnShineSweep 3.0s cubic-bezier(0.25, 0.8, 0.25, 1) infinite;
 }
 
-/* Lobby Sticky-Note Logo Tactile Animations */
+/* Lobby Bauhaus Sticky-Note Logo Tactile Animations */
 @keyframes lobbyLeftNoteNudge {
   0%, 100% {
-    transform: translate(0px, 0px) rotate(0deg);
+    transform: translate(0px, 0px);
   }
   32% {
-    transform: translate(5px, -2px) rotate(2.2deg);
+    transform: translate(5px, 0px);
   }
-  44% {
-    transform: translate(1.5px, 0px) rotate(-0.8deg);
+  46% {
+    transform: translate(1px, 0px);
   }
   65% {
-    transform: translate(0px, -2.5px) rotate(-1deg);
+    transform: translate(0px, -2px);
   }
 }
 
@@ -726,13 +694,13 @@
 
 @keyframes lobbyRightNoteLift {
   0%, 100% {
-    transform: translate(0px, 0px) rotate(0deg) scale(1);
+    transform: translate(0px, 0px);
   }
   42% {
-    transform: translate(1.5px, -7px) rotate(2.6deg) scale(1.035);
+    transform: translate(0px, -6px);
   }
   60% {
-    transform: translate(1px, -5.5px) rotate(1.8deg) scale(1.02);
+    transform: translate(0px, -4px);
   }
 }
 
@@ -741,10 +709,10 @@
     transform: translateY(0px);
   }
   40% {
-    transform: translateY(-5.5px);
+    transform: translateY(-5px);
   }
   60% {
-    transform: translateY(-2.5px);
+    transform: translateY(-2px);
   }
 }
 
@@ -753,7 +721,7 @@
     transform: translateY(0px);
   }
   50% {
-    transform: translateY(-2.5px);
+    transform: translateY(-2px);
   }
 }
 

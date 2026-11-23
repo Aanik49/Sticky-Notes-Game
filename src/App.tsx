@@ -79,7 +79,7 @@ function instantiateNotes(level: LevelDef): ActiveNote[] {
     c: spec.c,
     dir: spec.dir,
     color: spec.color,
-    tilt: (((idx * 11 + spec.r * 5 + spec.c * 3) % 7) - 3) * 0.72,
+    tilt: 0,
     under: spec.under ? { ...spec.under } : undefined,
   }));
 }
@@ -167,6 +167,9 @@ export default function App() {
     () => currentLevel.notes.reduce((sum, n) => sum + (n.under ? 2 : 1), 0),
     [currentLevel]
   );
+  const sheetsPeeled = Math.max(0, initialTotalSheets - sheetsRemaining);
+  const peelProgressRatio =
+    initialTotalSheets > 0 ? Math.min(1, Math.max(0, sheetsPeeled / initialTotalSheets)) : 1;
   const liveStars: 1 | 2 | 3 = bumps === 0 ? 3 : bumps <= 2 ? 2 : 1;
 
   // Persist progress changes
@@ -943,9 +946,9 @@ export default function App() {
         <div
           className={`${activeTheme.worldClass} relative flex h-dvh w-screen flex-col justify-between overflow-hidden transition-colors duration-500`}
         >
-          {/* TOP PERIMETER HUD */}
-          <header className="z-20 mx-auto flex w-full max-w-3xl shrink-0 items-center justify-between gap-2.5 px-4 pt-3 pb-1 sm:px-6 sm:pt-5">
-            {/* Left: Pause Button + Clean Level Name Picker Trigger */}
+          {/* TOP BAUHAUS PERIMETER HUD */}
+          <header className="z-20 flex w-full shrink-0 items-center justify-between gap-2.5 border-b-[3px] border-[#111111] px-4 py-2.5 sm:px-6 sm:py-3">
+            {/* Left: Pause Button + Clean Level Name Picker Trigger (no subtitle) */}
             <div className="flex min-w-0 items-center gap-2">
               <button
                 type="button"
@@ -954,11 +957,7 @@ export default function App() {
                   setScreen('PAUSED');
                 }}
                 aria-label="Pause game"
-                className={`flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl transition active:scale-95 ${
-                  activeTheme.isDark
-                    ? 'bg-white/10 text-slate-100 hover:bg-white/16'
-                    : 'bg-black/6 text-current hover:bg-black/11'
-                }`}
+                className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center border-2 border-[#111111] bg-[#f5f0e2] text-[#111111] shadow-[2px_2px_0_#111111] transition hover:-translate-y-0.5 hover:bg-white active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
               >
                 <Pause className="h-4 w-4" />
               </button>
@@ -970,41 +969,39 @@ export default function App() {
                   handleOpenLevelPicker(currentLevel.packId);
                 }}
                 aria-label={`Current level: ${currentLevel.title}. Tap to switch wall`}
-                className={`group flex h-10 min-w-0 cursor-pointer items-center gap-1.5 rounded-xl px-3 text-left transition active:scale-[0.98] ${
-                  activeTheme.isDark
-                    ? 'bg-white/8 hover:bg-white/14'
-                    : 'bg-black/5 hover:bg-black/9'
-                }`}
+                className="group flex h-10 min-w-0 cursor-pointer items-center gap-1.5 border-2 border-[#111111] bg-[#f5f0e2] px-3 text-left text-[#111111] shadow-[2px_2px_0_#111111] transition hover:-translate-y-0.5 hover:bg-white active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
               >
-                <span className="font-display truncate text-base font-bold leading-none sm:text-lg">
+                <span className="font-display truncate text-sm font-black tracking-tight uppercase leading-none sm:text-base">
                   {currentLevel.title}
                 </span>
-                <ChevronDown className="h-4 w-4 shrink-0 opacity-60 transition-transform group-hover:translate-y-0.5" />
+                <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-hover:translate-y-0.5" />
               </button>
             </div>
 
             {/* Right: Clean Tabular Telemetry + Music & Sound */}
             <div className="flex shrink-0 items-center gap-2.5 sm:gap-4">
-              <div className="flex items-center gap-2.5 text-xs font-semibold sm:gap-3 sm:text-sm">
+              <div className="flex items-center gap-2.5 text-xs font-bold sm:gap-3 sm:text-sm">
                 <div className="flex items-baseline gap-1">
-                  <span className="hidden opacity-60 sm:inline">Left</span>
-                  <span className="font-mono-num text-sm font-bold sm:text-base">
+                  <span className="hidden uppercase opacity-75 sm:inline">Left</span>
+                  <span className="font-mono-num text-sm font-extrabold sm:text-base">
                     {sheetsRemaining}
                   </span>
                 </div>
 
-                <span aria-hidden="true" className="opacity-30">
+                <span aria-hidden="true" className="opacity-40">
                   ·
                 </span>
 
                 <div className="flex items-baseline gap-1">
-                  <span className="hidden opacity-60 sm:inline">Bumps</span>
+                  <span className="hidden uppercase opacity-75 sm:inline">Bumps</span>
                   <span
-                    className={`font-mono-num text-sm font-bold sm:text-base ${
+                    className={`font-mono-num text-sm font-extrabold sm:text-base ${
                       bumps >= MAX_BUMPS - 1
-                        ? 'text-rose-500'
+                        ? 'text-[#d6302a]'
                         : bumps > 0
-                          ? 'text-amber-500'
+                          ? activeTheme.isDark
+                            ? 'text-[#e4b43c]'
+                            : 'text-[#b45309]'
                           : ''
                     }`}
                   >
@@ -1012,7 +1009,7 @@ export default function App() {
                   </span>
                 </div>
 
-                <span aria-hidden="true" className="hidden opacity-30 sm:inline">
+                <span aria-hidden="true" className="hidden opacity-40 sm:inline">
                   ·
                 </span>
 
@@ -1025,7 +1022,7 @@ export default function App() {
                       key={s}
                       className={`h-4 w-4 ${
                         s <= liveStars
-                          ? 'fill-amber-400 text-amber-500'
+                          ? 'fill-[#e4b43c] text-[#111111]'
                           : 'opacity-25'
                       }`}
                     />
@@ -1039,17 +1036,13 @@ export default function App() {
                   onClick={handleToggleMusic}
                   aria-label={progress.musicMuted ? 'Unmute background music' : 'Mute background music'}
                   title={progress.musicMuted ? 'Music Off' : 'Music On'}
-                  className={`relative flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl transition active:scale-95 ${
-                    activeTheme.isDark
-                      ? 'bg-white/10 text-slate-100 hover:bg-white/16'
-                      : 'bg-black/6 text-current hover:bg-black/11'
-                  }`}
+                  className="relative flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center border-2 border-[#111111] bg-[#f5f0e2] text-[#111111] shadow-[2px_2px_0_#111111] transition hover:-translate-y-0.5 hover:bg-white active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                 >
-                  <Music className={`h-4 w-4 ${progress.musicMuted ? 'text-rose-500 opacity-75' : ''}`} />
+                  <Music className={`h-4 w-4 ${progress.musicMuted ? 'text-[#d6302a]' : ''}`} />
                   {progress.musicMuted && (
                     <span
                       aria-hidden="true"
-                      className="pointer-events-none absolute h-[2px] w-5 rotate-45 rounded-full bg-rose-500"
+                      className="pointer-events-none absolute h-[2.5px] w-5 rotate-45 bg-[#d6302a]"
                     />
                   )}
                 </button>
@@ -1059,14 +1052,10 @@ export default function App() {
                   onClick={handleToggleMute}
                   aria-label={progress.muted ? 'Unmute sound effects' : 'Mute sound effects'}
                   title={progress.muted ? 'Sound Off' : 'Sound On'}
-                  className={`flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl transition active:scale-95 ${
-                    activeTheme.isDark
-                      ? 'bg-white/10 text-slate-100 hover:bg-white/16'
-                      : 'bg-black/6 text-current hover:bg-black/11'
-                  }`}
+                  className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center border-2 border-[#111111] bg-[#f5f0e2] text-[#111111] shadow-[2px_2px_0_#111111] transition hover:-translate-y-0.5 hover:bg-white active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                 >
                   {progress.muted ? (
-                    <VolumeX className="h-4 w-4 text-rose-500" />
+                    <VolumeX className="h-4 w-4 text-[#d6302a]" />
                   ) : (
                     <Volume2 className="h-4 w-4" />
                   )}
@@ -1075,20 +1064,60 @@ export default function App() {
             </div>
           </header>
 
-          {/* CENTER STAGE: TIME ATTACK STOPWATCH STRIP + UNOBSTRUCTED TACTILE BOARD */}
+          {/* BAUHAUS WALL COMPLETION PROGRESS BAR (fills smoothly as notes are peeled) */}
+          <div
+            role="progressbar"
+            aria-label="Wall completion progress"
+            aria-valuemin={0}
+            aria-valuemax={initialTotalSheets}
+            aria-valuenow={sheetsPeeled}
+            className="relative z-20 h-2.5 w-full shrink-0 overflow-hidden border-b-[3px] border-[#111111] bg-[#f5f0e2]"
+          >
+            {/* Filled Bauhaus primary bar */}
+            <div
+              style={{
+                transform: `scaleX(${peelProgressRatio})`,
+                transformOrigin: 'left center',
+              }}
+              className={`h-full w-full transition-transform duration-300 ease-out ${
+                peelProgressRatio >= 1
+                  ? 'bg-[#10b981]'
+                  : activeTheme.id === 'cork'
+                    ? 'bg-[#d6302a]'
+                    : 'bg-[#e4b43c]'
+              }`}
+            />
+            {/* Crisp leading ink marker along the progress edge */}
+            {peelProgressRatio > 0 && peelProgressRatio < 1 && (
+              <div
+                aria-hidden="true"
+                style={{ left: `${peelProgressRatio * 100}%` }}
+                className="pointer-events-none absolute top-0 bottom-0 w-[2px] -translate-x-1/2 bg-[#111111] transition-[left] duration-300 ease-out"
+              />
+            )}
+            {/* Subtle Bauhaus vertical grid subdivisions */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 grid grid-cols-10 divide-x divide-[#111111]/15"
+            >
+              {Array.from({ length: 10 }).map((_, idx) => (
+                <span key={idx} />
+              ))}
+            </div>
+          </div>
+
+          {/* CENTER STAGE: TIME ATTACK STOPWATCH STRIP + UNOBSTRUCTED BAUHAUS BOARD */}
           <main className="relative flex flex-1 flex-col items-center justify-center gap-2 px-3 py-1">
             {/* Time Attack Toggle & Live Stopwatch positioned right above the sticky note board */}
-            <div className="z-20 flex w-full max-w-[540px] items-center justify-between gap-2 px-1">
+            <div className="z-20 flex w-full max-w-[532px] items-center justify-between gap-2 px-0.5">
               <button
                 type="button"
                 onClick={handleToggleTimeAttack}
                 aria-pressed={progress.timeAttackEnabled}
-                className={`flex h-8 cursor-pointer items-center gap-1.5 rounded-xl px-2.5 text-xs font-bold transition active:scale-95 whitespace-nowrap ${
+                className={`font-display flex h-8 cursor-pointer items-center gap-1.5 border-2 border-[#111111] px-2.5 text-xs font-extrabold uppercase shadow-[2px_2px_0_#111111] transition active:translate-x-[1px] active:translate-y-[1px] active:shadow-none whitespace-nowrap ${
                   progress.timeAttackEnabled
-                    ? 'bg-slate-900 text-amber-300 shadow-xs'
-                    : activeTheme.isDark
-                      ? 'bg-white/8 text-slate-200 hover:bg-white/14'
-                      : 'bg-black/6 text-current hover:bg-black/10'
+                    ? 'bg-[#e4b43c] text-[#111111]'
+                    : 'bg-[#f5f0e2] text-[#111111] hover:bg-white'
                 }`}
               >
                 <Timer className="h-3.5 w-3.5 shrink-0" />
@@ -1097,12 +1126,9 @@ export default function App() {
               </button>
 
               {progress.timeAttackEnabled ? (
-                <div className="font-mono-num flex items-center gap-2.5 text-sm font-bold">
-                  <span
-                    aria-live="off"
-                    className="flex items-center gap-1.5 tracking-tight"
-                  >
-                    <Timer className="h-4 w-4 text-amber-500" />
+                <div className="font-mono-num flex items-center gap-2.5 text-sm font-extrabold">
+                  <span aria-live="off" className="flex items-center gap-1.5 tracking-tight">
+                    <Timer className="h-4 w-4 text-[#e4b43c]" />
                     {formatStopwatchMs(liveElapsedMs)}
                   </span>
                   {(() => {
@@ -1115,10 +1141,10 @@ export default function App() {
                     if (rec?.bestTimeMs === undefined) return null;
                     return (
                       <>
-                        <span aria-hidden="true" className="opacity-30">
+                        <span aria-hidden="true" className="opacity-40">
                           ·
                         </span>
-                        <span className="text-xs font-semibold opacity-70">
+                        <span className="text-xs font-bold opacity-80">
                           Best {formatStopwatchMs(rec.bestTimeMs)}
                         </span>
                       </>
@@ -1129,7 +1155,7 @@ export default function App() {
                 <div
                   key={`combo-${combo}`}
                   aria-live="polite"
-                  className="combo-pop font-display text-sm font-bold tracking-tight text-amber-500 sm:text-base"
+                  className="combo-pop font-display text-sm font-black tracking-tight uppercase sm:text-base"
                 >
                   ×{combo} Clean Streak
                 </div>
@@ -1138,9 +1164,9 @@ export default function App() {
               )}
             </div>
 
-            {/* Daily Mission Goal Strip (Daily Puzzle only, unboxed inline typography above board) */}
+            {/* Daily Mission Goal Strip (Daily Puzzle only, inline typography above board) */}
             {dailyMissionLive && (
-              <div className="z-20 flex w-full max-w-[540px] items-center justify-between gap-2 px-1 text-xs font-semibold">
+              <div className="z-20 flex w-full max-w-[532px] items-center justify-between gap-2 px-0.5 text-xs font-bold">
                 <div className="flex min-w-0 items-center gap-1.5">
                   {dailyMissionLive.state === 'met' ? (
                     <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
@@ -1148,22 +1174,24 @@ export default function App() {
                     <Target
                       className={`h-3.5 w-3.5 shrink-0 ${
                         dailyMissionLive.state === 'missed'
-                          ? 'text-rose-500 opacity-75'
-                          : 'text-amber-500'
+                          ? 'text-[#d6302a]'
+                          : 'text-[#e4b43c]'
                       }`}
                     />
                   )}
-                  <span className="truncate opacity-85">
+                  <span className="truncate">
                     Daily Mission: {dailyMissionLive.label}
                   </span>
                 </div>
                 <span
-                  className={`font-mono-num shrink-0 font-bold ${
+                  className={`font-mono-num shrink-0 font-extrabold ${
                     dailyMissionLive.state === 'met'
                       ? 'text-emerald-500'
                       : dailyMissionLive.state === 'missed'
-                        ? 'text-rose-500'
-                        : 'text-amber-500'
+                        ? 'text-[#d6302a]'
+                        : activeTheme.isDark
+                          ? 'text-[#e4b43c]'
+                          : 'text-[#2b56a3]'
                   }`}
                 >
                   {dailyMissionLive.status}
@@ -1175,7 +1203,7 @@ export default function App() {
               <div
                 key={`combo-${combo}`}
                 aria-live="polite"
-                className="combo-pop font-display pointer-events-none absolute top-9 left-1/2 z-30 -translate-x-1/2 text-sm font-bold tracking-tight text-amber-500 drop-shadow-xs sm:text-base"
+                className="combo-pop font-display pointer-events-none absolute top-9 left-1/2 z-30 -translate-x-1/2 text-sm font-black tracking-tight uppercase sm:text-base"
               >
                 ×{combo} Clean Streak
               </div>
@@ -1207,55 +1235,45 @@ export default function App() {
             </div>
           </main>
 
-          {/* BOTTOM ERGONOMIC ACTION BAR */}
-          <footer className="z-20 mx-auto flex w-full max-w-md shrink-0 items-center justify-center gap-2.5 px-4 pt-1 pb-4 sm:gap-3 sm:pb-6">
-            <button
-              type="button"
-              onClick={handleUndo}
-              disabled={undoStack.length === 0}
-              className={`flex h-12 flex-1 cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 px-4 text-sm font-bold transition active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40 whitespace-nowrap ${
-                activeTheme.isDark
-                  ? 'border-white/15 bg-white/8 text-slate-100 hover:bg-white/14'
-                  : 'border-black/12 bg-white/85 text-slate-900 shadow-xs hover:bg-white'
-              }`}
-            >
-              <Undo2 className="h-4 w-4 shrink-0" />
-              <span>Undo</span>
-              {undoStack.length > 0 && (
-                <span className="font-mono-num text-xs opacity-60">
-                  {undoStack.length}
-                </span>
-              )}
-            </button>
+          {/* BOTTOM BAUHAUS ACTION BAR */}
+          <footer className="z-20 flex w-full shrink-0 items-center justify-center border-t-[3px] border-[#111111] px-4 py-3 sm:py-4">
+            <div className="flex w-full max-w-md items-center justify-center gap-2.5 sm:gap-3">
+              <button
+                type="button"
+                onClick={handleUndo}
+                disabled={undoStack.length === 0}
+                className="font-display flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 border-2 border-[#111111] bg-[#f5f0e2] px-4 text-xs font-extrabold tracking-wide text-[#111111] uppercase shadow-[3px_3px_0_#111111] transition hover:-translate-y-0.5 hover:bg-white active:translate-x-[1px] active:translate-y-[1px] active:shadow-none disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0 whitespace-nowrap sm:text-sm"
+              >
+                <Undo2 className="h-4 w-4 shrink-0" />
+                <span>Undo</span>
+                {undoStack.length > 0 && (
+                  <span className="font-mono-num text-xs opacity-70">{undoStack.length}</span>
+                )}
+              </button>
 
-            <button
-              type="button"
-              onClick={handleRestart}
-              className={`flex h-12 flex-1 cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 px-4 text-sm font-bold transition active:translate-y-0.5 whitespace-nowrap ${
-                activeTheme.isDark
-                  ? 'border-white/15 bg-white/8 text-slate-100 hover:bg-white/14'
-                  : 'border-black/12 bg-white/85 text-slate-900 shadow-xs hover:bg-white'
-              }`}
-            >
-              <RotateCcw className="h-4 w-4 shrink-0" />
-              <span>Restart</span>
-            </button>
+              <button
+                type="button"
+                onClick={handleRestart}
+                className="font-display flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 border-2 border-[#111111] bg-[#2b56a3] px-4 text-xs font-extrabold tracking-wide text-[#faf6ea] uppercase shadow-[3px_3px_0_#111111] transition hover:-translate-y-0.5 hover:bg-[#244a8e] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none whitespace-nowrap sm:text-sm"
+              >
+                <RotateCcw className="h-4 w-4 shrink-0" />
+                <span>Restart</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={handleHint}
-              disabled={notes.length === 0}
-              className={`flex h-12 flex-1 cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 px-4 text-sm font-bold transition active:translate-y-0.5 disabled:opacity-40 whitespace-nowrap ${
-                hint
-                  ? 'border-emerald-500 bg-emerald-500 text-white shadow-sm'
-                  : activeTheme.isDark
-                    ? 'border-amber-400/35 bg-amber-400/14 text-amber-200 hover:bg-amber-400/20'
-                    : 'border-amber-500/40 bg-amber-50/90 text-amber-950 shadow-xs hover:bg-amber-100'
-              }`}
-            >
-              <Lightbulb className="h-4 w-4 shrink-0" />
-              <span>{hint?.tier === 1 ? 'Show Lane' : 'Hint'}</span>
-            </button>
+              <button
+                type="button"
+                onClick={handleHint}
+                disabled={notes.length === 0}
+                className={`font-display flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 border-2 border-[#111111] px-4 text-xs font-extrabold tracking-wide uppercase shadow-[3px_3px_0_#111111] transition hover:-translate-y-0.5 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none disabled:opacity-45 whitespace-nowrap sm:text-sm ${
+                  hint
+                    ? 'bg-[#10b981] text-[#111111]'
+                    : 'bg-[#e4b43c] text-[#111111] hover:bg-[#ecc252]'
+                }`}
+              >
+                <Lightbulb className="h-4 w-4 shrink-0" />
+                <span>{hint?.tier === 1 ? 'Show Lane' : 'Hint'}</span>
+              </button>
+            </div>
           </footer>
         </div>
       )}

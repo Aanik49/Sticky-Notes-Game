@@ -25,7 +25,7 @@ import {
   THEMES,
 } from '../game/levels';
 import { checkNotePath, PAPER_HEX } from '../game/solver';
-import { ActiveNote, Direction, SavedProgress, ThemeId } from '../game/types';
+import { ActiveNote, Direction, PaperColor, SavedProgress, ThemeId } from '../game/types';
 import { GameIcon } from './GameIcon';
 import { DailyRewardIcon } from './Modals';
 
@@ -45,24 +45,62 @@ interface TitleScreenProps {
 }
 
 const DEMO_WALL: Omit<ActiveNote, 'id'>[] = [
-  { r: 0, c: 0, dir: 'U', color: 'canary', tilt: -2.2 },
-  { r: 0, c: 1, dir: 'R', color: 'coral', tilt: 1.8 },
-  { r: 0, c: 2, dir: 'R', color: 'sky', tilt: -1.4 },
-  { r: 1, c: 0, dir: 'U', color: 'mint', tilt: 2.1 },
-  { r: 1, c: 1, dir: 'U', color: 'apricot', tilt: -1.6 },
-  { r: 1, c: 2, dir: 'D', color: 'lavender', tilt: 1.5 },
-  { r: 2, c: 0, dir: 'L', color: 'sky', tilt: -1.8 },
-  { r: 2, c: 1, dir: 'L', color: 'canary', tilt: 1.2 },
-  { r: 2, c: 2, dir: 'D', color: 'mint', tilt: -2.0 },
+  { r: 0, c: 0, dir: 'U', color: 'canary', tilt: 0 },
+  { r: 0, c: 1, dir: 'R', color: 'coral', tilt: 0 },
+  { r: 0, c: 2, dir: 'R', color: 'sky', tilt: 0 },
+  { r: 1, c: 0, dir: 'U', color: 'mint', tilt: 0 },
+  { r: 1, c: 1, dir: 'U', color: 'canary', tilt: 0 },
+  { r: 1, c: 2, dir: 'D', color: 'coral', tilt: 0 },
+  { r: 2, c: 0, dir: 'L', color: 'sky', tilt: 0 },
+  { r: 2, c: 1, dir: 'L', color: 'mint', tilt: 0 },
+  { r: 2, c: 2, dir: 'D', color: 'canary', tilt: 0 },
 ];
 
 const ARROW_ROT: Record<Direction, number> = { R: 0, D: 90, L: 180, U: -90 };
 
+const DEMO_ARROW_FILL: Record<PaperColor, string> = {
+  canary: '#d6302a',
+  coral: '#e4b43c',
+  sky: '#f5f0e2',
+  mint: '#2b56a3',
+  apricot: '#f5f0e2',
+  lavender: '#e4b43c',
+};
+
+const DEMO_FOLD_FILL: Record<PaperColor, string> = {
+  canary: '#c99724',
+  coral: '#ad211c',
+  sky: '#1d3f7a',
+  mint: '#dad3c1',
+  apricot: '#b8511b',
+  lavender: '#144e49',
+};
+
 const PACK_GLOW_RGB: Record<ThemeId, string> = {
-  fridge: '14, 165, 233',
-  cork: '217, 119, 6',
-  drafting: '20, 184, 166',
-  midnight: '251, 191, 36',
+  fridge: '214, 48, 42',
+  cork: '228, 180, 60',
+  drafting: '45, 212, 191',
+  midnight: '228, 180, 60',
+  atelier: '255, 118, 97',
+  gallery: '96, 165, 250',
+};
+
+const PACK_SWATCH_BG: Record<ThemeId, string> = {
+  fridge: '#f5f0e2',
+  cork: '#e4b43c',
+  drafting: '#1e6b64',
+  midnight: '#181b24',
+  atelier: '#d6302a',
+  gallery: '#2b56a3',
+};
+
+const PLAY_BUTTON_THEME: Record<ThemeId, string> = {
+  fridge: 'bg-[#d6302a] text-[#faf6ea] hover:bg-[#c02621]',
+  cork: 'bg-[#111111] text-[#e4b43c] hover:bg-[#222222]',
+  drafting: 'bg-[#e4b43c] text-[#111111] hover:bg-[#ecc252]',
+  midnight: 'bg-[#e4b43c] text-[#111111] hover:bg-[#ecc252]',
+  atelier: 'bg-[#f5f0e2] text-[#111111] hover:bg-[#ffffff]',
+  gallery: 'bg-[#e4b43c] text-[#111111] hover:bg-[#ecc252]',
 };
 
 const LOBBY_FOOTER_TIPS = [
@@ -155,23 +193,26 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   const totalEarnedStars = THEME_ORDER.reduce((sum, id) => sum + getPackStars(id).earned, 0);
   const totalPossibleStars = THEME_ORDER.reduce((sum, id) => sum + getPackStars(id).total, 0);
 
+  const headerBtnClass =
+    'flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center border-2 border-[#111111] bg-[#f5f0e2] text-[#111111] shadow-[2px_2px_0_#111111] transition hover:-translate-y-0.5 hover:bg-white active:translate-x-[1px] active:translate-y-[1px] active:shadow-none';
+
   return (
     <div
       className={`${theme.worldClass} relative flex h-dvh w-screen flex-col overflow-hidden transition-colors duration-500`}
     >
-      {/* Top Quiet Perimeter Bar with Game Icon + Walls, Music & Sound Buttons */}
-      <header className="z-20 flex shrink-0 items-center justify-between px-5 pt-4 pb-2 sm:px-8 sm:pt-6">
+      {/* Bauhaus Architectural Top Header Bar (Mondrian structural divider) */}
+      <header className="z-20 flex shrink-0 items-center justify-between border-b-[3px] border-[#111111] px-4 py-2.5 sm:px-7 sm:py-3">
         <div className="flex items-center gap-3">
-          <GameIcon className="h-9 w-9 shrink-0 drop-shadow-sm sm:h-10 sm:w-10" />
-          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs font-semibold opacity-80 sm:text-sm">
+          <GameIcon className="h-9 w-9 shrink-0 shadow-[2px_2px_0_#111111] sm:h-10 sm:w-10" />
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs font-bold sm:text-sm">
             <span className="font-mono-num flex items-center gap-1">
-              <Star className="h-4 w-4 fill-amber-400 text-amber-500" />
+              <Star className="h-4 w-4 fill-[#e4b43c] text-[#111111]" />
               {totalEarnedStars}/{totalPossibleStars}
             </span>
             {progress.dailyStreak > 0 && (
               <>
                 <span aria-hidden="true">·</span>
-                <span className="font-mono-num">Daily Streak {progress.dailyStreak}</span>
+                <span className="font-mono-num">Streak {progress.dailyStreak}</span>
               </>
             )}
             {progress.endlessBestStreak > 0 && (
@@ -192,11 +233,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             }}
             aria-label="Browse all walls and packs"
             title="All Walls"
-            className={`flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl transition active:scale-95 ${
-              theme.isDark
-                ? 'bg-white/10 text-slate-100 hover:bg-white/15'
-                : 'bg-black/6 text-current hover:bg-black/10'
-            }`}
+            className={headerBtnClass}
           >
             <Layers className="h-5 w-5" />
           </button>
@@ -206,17 +243,13 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             onClick={onToggleMusic}
             aria-label={musicMuted ? 'Unmute background music' : 'Mute background music'}
             title={musicMuted ? 'Music Off' : 'Music On'}
-            className={`relative flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl transition active:scale-95 ${
-              theme.isDark
-                ? 'bg-white/10 text-slate-100 hover:bg-white/15'
-                : 'bg-black/6 text-current hover:bg-black/10'
-            }`}
+            className={`${headerBtnClass} relative`}
           >
-            <Music className={`h-5 w-5 ${musicMuted ? 'text-rose-500 opacity-75' : ''}`} />
+            <Music className={`h-5 w-5 ${musicMuted ? 'text-[#d6302a]' : ''}`} />
             {musicMuted && (
               <span
                 aria-hidden="true"
-                className="pointer-events-none absolute h-[2px] w-6 rotate-45 rounded-full bg-rose-500"
+                className="pointer-events-none absolute h-[2.5px] w-6 rotate-45 bg-[#d6302a]"
               />
             )}
           </button>
@@ -226,106 +259,109 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             onClick={onToggleMute}
             aria-label={muted ? 'Unmute sound effects' : 'Mute sound effects'}
             title={muted ? 'Sound Off' : 'Sound On'}
-            className={`flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl transition active:scale-95 ${
-              theme.isDark
-                ? 'bg-white/10 text-slate-100 hover:bg-white/15'
-                : 'bg-black/6 text-current hover:bg-black/10'
-            }`}
+            className={headerBtnClass}
           >
-            {muted ? <VolumeX className="h-5 w-5 text-rose-500" /> : <Volume2 className="h-5 w-5" />}
+            {muted ? <VolumeX className="h-5 w-5 text-[#d6302a]" /> : <Volume2 className="h-5 w-5" />}
           </button>
         </div>
       </header>
 
-      {/* Main Responsive Stage: Split 2-column on desktop, airy vertical stack on mobile */}
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center gap-5 px-5 pb-4 sm:px-8 lg:flex-row lg:items-center lg:justify-between lg:gap-12">
-        {/* Left Zone: Bespoke SVG Title Lockup + Pack Selector + Daily/Endless + Primary Play CTA */}
-        <div className="flex w-full max-w-md flex-col items-center text-center lg:items-start lg:text-left">
-          {/* Bespoke Inline SVG Layered Sticky-Note Title Lockup (Animated!) */}
+      {/* Main Responsive Bauhaus Stage */}
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center gap-4 px-4 py-2 sm:px-7 lg:flex-row lg:items-center lg:justify-between lg:gap-10">
+        {/* Left Zone: Animated Bauhaus Lockup + 6 Categories + Daily/Endless + Primary Play */}
+        <div className="flex w-full max-w-lg flex-col items-center text-center lg:items-start lg:text-left">
+          {/* Animated Bauhaus Grid Art Title Lockup (moved cleanly higher) */}
           <svg
-            viewBox="0 0 380 128"
+            viewBox="0 0 420 120"
             role="img"
             aria-label="Sticky Notes Puzzle"
-            className="-mt-5 mb-7 h-auto w-[264px] overflow-visible sm:-mt-6 sm:mb-8 sm:w-[330px] lg:w-[360px]"
+            className="-mt-4 mb-5 h-auto w-[280px] overflow-visible sm:-mt-5 sm:mb-6 sm:w-[356px] lg:w-[390px]"
           >
-            <defs>
-              <filter id="noteShadow" x="-15%" y="-15%" width="135%" height="145%">
-                <feDropShadow dx="0" dy="6" stdDeviation="5" floodColor="#0f172a" floodOpacity="0.22" />
-              </filter>
-            </defs>
-
-            {/* Left Coral Note: nudges toward the center note with right-gliding arrow */}
-            <g transform="translate(18, 22) rotate(-8)" filter="url(#noteShadow)">
+            {/* Left Bauhaus Ochre Note: nudges toward center along its red right block arrow */}
+            <g transform="translate(8, 22)">
               <g className="lobby-note-left">
-                <rect width="74" height="74" rx="8" fill="#fb7185" />
-                <rect width="74" height="16" rx="4" fill="#ffffff" fillOpacity="0.28" />
+                <rect x="4" y="4" width="66" height="66" fill="#111111" />
+                <rect width="66" height="66" fill="#E4B43C" stroke="#111111" strokeWidth="3.5" />
+                <polygon points="52,0 66,0 66,14" fill="#F5F0E2" />
+                <polygon points="52,0 52,14 66,14" fill="#C99724" stroke="#111111" strokeWidth="2.2" />
                 <path
                   className="lobby-arrow-right"
-                  d="M24 44h26M41 35l9 9-9 9"
-                  stroke="#4c0519"
-                  strokeWidth="4.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  fill="none"
+                  d="M15 27.5 H34 V19 L50 33 L34 47 V38.5 H15 Z"
+                  fill="#D6302A"
+                  stroke="#111111"
+                  strokeWidth="2.6"
+                  strokeLinejoin="miter"
                 />
               </g>
             </g>
 
-            {/* Right Sky Note: lifts upward cleanly along its up-gliding arrow */}
-            <g transform="translate(292, 16) rotate(9)" filter="url(#noteShadow)">
+            {/* Right Bauhaus Cobalt Note: glides upward along its cream up block arrow */}
+            <g transform="translate(344, 18)">
               <g className="lobby-note-right">
-                <rect width="70" height="70" rx="8" fill="#38bdf8" />
-                <rect width="70" height="15" rx="4" fill="#ffffff" fillOpacity="0.28" />
+                <rect x="4" y="4" width="66" height="66" fill="#111111" />
+                <rect width="66" height="66" fill="#2B56A3" stroke="#111111" strokeWidth="3.5" />
+                <polygon points="52,66 66,66 66,52" fill="#F5F0E2" />
+                <polygon points="52,52 66,52 52,66" fill="#1D3F7A" stroke="#111111" strokeWidth="2.2" />
                 <path
                   className="lobby-arrow-up"
-                  d="M35 50V24M26 33l9-9 9 9"
-                  stroke="#082f49"
-                  strokeWidth="4.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  fill="none"
+                  d="M27.5 51 V32 H19 L33 16 L47 32 H38.5 V51 Z"
+                  fill="#F5F0E2"
+                  stroke="#111111"
+                  strokeWidth="2.6"
+                  strokeLinejoin="miter"
                 />
               </g>
             </g>
 
-            {/* Primary Canary Title Note: calm buoyant float with subtle curled-corner flutter */}
-            <g transform="translate(66, 8) rotate(-2)" filter="url(#noteShadow)">
+            {/* Center Bauhaus Architectural Title Block: STICKY [NOTES] */}
+            <g transform="translate(84, 12)">
               <g className="lobby-note-center">
-                <path
-                  d="M10 0 H242 A10 10 0 0 1 252 10 V82 L228 106 H10 A10 10 0 0 1 0 96 V10 A10 10 0 0 1 10 0 Z"
-                  fill="#fde047"
-                />
-                <rect x="0" y="0" width="252" height="22" rx="6" fill="#ffffff" fillOpacity="0.34" />
-                {/* Curled corner flap */}
-                <path
+                <rect x="5" y="5" width="250" height="86" fill="#111111" />
+                <rect width="250" height="86" fill="#F5F0E2" stroke="#111111" strokeWidth="3.5" />
+                {/* Red Accent Block behind NOTES (faithful to reference image) */}
+                <rect x="131" y="12" width="107" height="44" fill="#D6302A" stroke="#111111" strokeWidth="2.5" />
+                {/* Crisp Corner Fold Accent */}
+                <polygon
                   className="lobby-corner-flap"
-                  d="M228 106 V86 A4 4 0 0 1 232 82 H252 Z"
-                  fill="#eab308"
+                  points="234,86 250,70 250,86"
+                  fill="#E4B43C"
+                  stroke="#111111"
+                  strokeWidth="2"
                 />
                 <text
-                  x="126"
-                  y="54"
+                  x="70"
+                  y="45"
                   textAnchor="middle"
-                  fill="#291503"
-                  style={{ fontFamily: 'Fredoka, sans-serif', fontWeight: 700, fontSize: '36px', letterSpacing: '-0.02em' }}
+                  fill="#111111"
+                  style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 900, fontSize: '31px', letterSpacing: '-0.02em' }}
                 >
-                  STICKY NOTES
+                  STICKY
                 </text>
                 <text
-                  x="126"
-                  y="84"
+                  x="184"
+                  y="45"
                   textAnchor="middle"
-                  fill="#713f12"
-                  style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontWeight: 700, fontSize: '14px', letterSpacing: '0.18em' }}
+                  fill="#FAF6EA"
+                  style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 900, fontSize: '30px', letterSpacing: '0.01em' }}
                 >
-                  PEEL TO CLEAR
+                  NOTES
+                </text>
+                <line x1="12" y1="64" x2="226" y2="64" stroke="#111111" strokeWidth="2" />
+                <text
+                  x="119"
+                  y="79"
+                  textAnchor="middle"
+                  fill="#111111"
+                  style={{ fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, fontSize: '10.5px', letterSpacing: '0.24em' }}
+                >
+                  BAUHAUS GRID PUZZLE
                 </text>
               </g>
             </g>
           </svg>
 
-          {/* Pack World Selector (4 Tactile Packs with Progressive Unlock + Glow & Shine) */}
-          <div className="mb-3.5 grid w-full grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-2">
+          {/* 6 Category Packs Selector (Progressive Unlock + Glow & Shine + Theme Sync) */}
+          <div className="mb-3 grid w-full grid-cols-2 gap-2 sm:grid-cols-3">
             {THEME_ORDER.map((id) => {
               const t = THEMES[id];
               const isSelected = id === selectedTheme;
@@ -349,60 +385,53 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
                       ? ({ '--pack-glow-rgb': PACK_GLOW_RGB[id] } as React.CSSProperties)
                       : undefined
                   }
-                  className={`group flex cursor-pointer items-center gap-3 rounded-2xl border-2 px-3 py-2 text-left transition active:scale-[0.98] ${
+                  className={`group flex cursor-pointer items-center gap-2.5 border-2 border-[#111111] px-2.5 py-2 text-left transition active:translate-x-[1px] active:translate-y-[1px] ${
                     showShine ? 'pack-unlocked-shine' : ''
                   } ${isJustUnlocked ? 'pack-just-unlocked' : ''} ${
                     !unlocked
                       ? isSelected
-                        ? theme.isDark
-                          ? 'border-white/40 bg-white/10 text-slate-200'
-                          : 'border-slate-500/70 bg-white/65 text-slate-700'
-                        : theme.isDark
-                          ? 'border-white/8 bg-white/4 text-slate-400 opacity-75 hover:opacity-95'
-                          : 'border-black/8 bg-white/30 text-slate-600 opacity-75 hover:opacity-95'
+                        ? 'bg-[#e8e1ce] text-[#111111] shadow-[3px_3px_0_#111111]'
+                        : 'bg-[#f5f0e2]/80 text-[#111111]/70 shadow-[2px_2px_0_#111111] hover:bg-[#f5f0e2]'
                       : isSelected
-                        ? theme.isDark
-                          ? 'border-amber-400 bg-white/14 text-white shadow-md'
-                          : 'border-slate-900 bg-white/95 text-slate-900 shadow-md'
-                        : theme.isDark
-                          ? 'border-white/15 bg-white/7 text-slate-200 hover:bg-white/12'
-                          : 'border-black/10 bg-white/60 text-current hover:bg-white/85'
+                        ? 'bg-[#111111] text-[#faf6ea] shadow-[4px_4px_0_#e4b43c]'
+                        : 'bg-[#f5f0e2] text-[#111111] shadow-[3px_3px_0_#111111] hover:-translate-y-0.5 hover:bg-white'
                   }`}
                 >
-                  {/* Mini surface swatch (with lock overlay if locked) */}
+                  {/* Solid Bauhaus Primary Color Swatch Block */}
                   <span
                     aria-hidden="true"
-                    className={`${t.boardClass} relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg !border-2 !shadow-sm ${
-                      !unlocked ? 'grayscale-[45%] brightness-90' : ''
-                    }`}
+                    style={{ backgroundColor: PACK_SWATCH_BG[id] }}
+                    className={`relative flex h-7 w-7 shrink-0 items-center justify-center border-2 ${
+                      isSelected && unlocked ? 'border-[#faf6ea]' : 'border-[#111111]'
+                    } ${!unlocked ? 'opacity-65' : ''}`}
                   >
                     {!unlocked && (
-                      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-slate-950/75 text-white">
-                        <Lock className="h-3 w-3" />
+                      <span className="flex h-4.5 w-4.5 items-center justify-center bg-[#111111] text-[#faf6ea]">
+                        <Lock className="h-2.5 w-2.5" />
                       </span>
                     )}
                   </span>
 
                   <div className="relative z-10 min-w-0 flex-1">
                     <div className="flex items-center gap-1">
-                      <span className="font-display truncate text-sm font-semibold leading-tight">
+                      <span className="font-display truncate text-xs font-extrabold tracking-tight uppercase sm:text-[13px]">
                         {t.shortName}
                       </span>
                       {isJustUnlocked && (
-                        <Sparkles className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                        <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#e4b43c]" />
                       )}
                     </div>
-                    <div className="font-mono-num mt-0.5 flex items-center gap-1 text-[11px] opacity-75">
+                    <div className="font-mono-num mt-0.5 flex items-center gap-1 text-[10px] font-bold opacity-80">
                       {unlocked ? (
                         <>
-                          <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-500" />
+                          <Star className="h-2.5 w-2.5 shrink-0 fill-[#e4b43c] text-[#e4b43c]" />
                           <span>
                             {cleared}/{totalLevels}
                           </span>
                         </>
                       ) : (
                         <>
-                          <Lock className="h-3 w-3 shrink-0 opacity-70" />
+                          <Lock className="h-2.5 w-2.5 shrink-0" />
                           <span>Locked</span>
                         </>
                       )}
@@ -414,33 +443,29 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           </div>
 
           {/* Daily Puzzle (with Daily Mission preview) + Endless Wall Row */}
-          <div className="mb-2.5 grid w-full grid-cols-5 gap-2.5">
+          <div className="mb-2 grid w-full grid-cols-5 gap-2">
             <button
               type="button"
               onClick={onStartDaily}
-              className={`col-span-3 flex cursor-pointer items-center justify-between gap-2 rounded-2xl border-2 px-3.5 py-2 text-left transition active:translate-y-0.5 ${
+              className={`col-span-3 flex cursor-pointer items-center justify-between gap-2 border-2 border-[#111111] px-3 py-2 text-left shadow-[3px_3px_0_#111111] transition hover:-translate-y-0.5 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none ${
                 todayDailyRecord
-                  ? theme.isDark
-                    ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-100 hover:bg-emerald-400/16'
-                    : 'border-emerald-600/30 bg-emerald-50/85 text-emerald-950 hover:bg-emerald-50'
-                  : theme.isDark
-                    ? 'border-amber-400/40 bg-amber-400/12 text-amber-100 hover:bg-amber-400/18'
-                    : 'border-slate-900/20 bg-white/80 text-slate-900 hover:bg-white'
+                  ? 'bg-[#e4b43c] text-[#111111]'
+                  : 'bg-[#f5f0e2] text-[#111111] hover:bg-white'
               }`}
             >
-              <div className="flex min-w-0 items-center gap-2.5">
+              <div className="flex min-w-0 items-center gap-2">
                 {todayDailyRecord?.dailyMissionCompleted ? (
                   <DailyRewardIcon className="h-6 w-6 shrink-0" />
                 ) : todayDailyRecord ? (
-                  <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />
+                  <CheckCircle2 className="h-5 w-5 shrink-0 text-[#111111]" />
                 ) : (
-                  <Calendar className="h-5 w-5 shrink-0 text-amber-500" />
+                  <Calendar className="h-5 w-5 shrink-0 text-[#d6302a]" />
                 )}
                 <div className="min-w-0">
-                  <div className="font-display truncate text-sm font-bold leading-tight">
+                  <div className="font-display truncate text-xs font-extrabold tracking-tight uppercase sm:text-sm">
                     Daily · {todayLabel}
                   </div>
-                  <div className="truncate text-[11px] font-medium opacity-75">
+                  <div className="truncate text-[11px] font-semibold opacity-80">
                     {todayMission.label}
                   </div>
                 </div>
@@ -453,25 +478,21 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
                       key={s}
                       className={`h-3.5 w-3.5 ${
                         s <= todayDailyRecord.stars
-                          ? 'fill-amber-400 text-amber-500'
+                          ? 'fill-[#111111] text-[#111111]'
                           : 'opacity-25'
                       }`}
                     />
                   ))}
                 </div>
               ) : (
-                <span className="shrink-0 text-xs font-bold opacity-75">Play</span>
+                <span className="font-display shrink-0 text-xs font-extrabold uppercase">Go</span>
               )}
             </button>
 
             <button
               type="button"
               onClick={onStartEndless}
-              className={`font-display col-span-2 flex cursor-pointer items-center justify-center gap-1.5 rounded-2xl border-2 px-3 py-2 text-sm font-bold transition active:translate-y-0.5 whitespace-nowrap ${
-                theme.isDark
-                  ? 'border-white/20 bg-white/8 text-white hover:bg-white/14'
-                  : 'border-slate-900/20 bg-white/75 text-slate-900 hover:bg-white'
-              }`}
+              className="font-display col-span-2 flex cursor-pointer items-center justify-center gap-1.5 border-2 border-[#111111] bg-[#2b56a3] px-3 py-2 text-xs font-extrabold tracking-wide text-[#faf6ea] uppercase shadow-[3px_3px_0_#111111] transition hover:-translate-y-0.5 hover:bg-[#244a8e] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none whitespace-nowrap sm:text-sm"
               title="Play Endless Generated Walls"
             >
               <InfinityIcon className="h-4 w-4 shrink-0" />
@@ -479,43 +500,31 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             </button>
           </div>
 
-          {/* Primary Play Action (moved slightly down, with specular shine sweep & theme harmony) */}
+          {/* Primary Play Action (moved slightly down, with specular shine sweep & Bauhaus block styling) */}
           {selectedUnlocked ? (
             <button
               type="button"
               onClick={() => onStartPack(selectedTheme)}
-              className={`play-btn-shine font-display mt-4 flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-2xl px-6 py-3.5 text-lg font-bold transition active:translate-y-1 whitespace-nowrap ${
-                selectedTheme === 'cork'
-                  ? 'bg-[#3b200e] text-amber-200 shadow-[0_6px_0_#1e0e05,0_14px_28px_-6px_rgba(38,20,8,0.42)] hover:bg-[#4a2913] active:shadow-[0_2px_0_#1e0e05]'
-                  : selectedTheme === 'drafting'
-                    ? 'bg-[#082622] text-amber-300 ring-1 ring-teal-300/25 shadow-[0_6px_0_#041513,0_14px_28px_-6px_rgba(4,21,19,0.48)] hover:bg-[#0d332e] active:shadow-[0_2px_0_#041513]'
-                    : selectedTheme === 'midnight'
-                      ? 'bg-slate-950 text-amber-300 ring-1 ring-amber-400/30 shadow-[0_6px_0_#020617,0_14px_28px_-6px_rgba(2,6,23,0.55)] hover:bg-slate-900 active:shadow-[0_2px_0_#020617]'
-                      : 'bg-slate-900 text-amber-300 shadow-[0_6px_0_#020617,0_14px_28px_-6px_rgba(15,23,42,0.38)] hover:bg-slate-800 active:shadow-[0_2px_0_#020617]'
-              }`}
+              className={`play-btn-shine font-display mt-3.5 flex w-full cursor-pointer items-center justify-center gap-2.5 border-[3px] border-[#111111] px-6 py-3.5 text-lg font-black tracking-wider uppercase shadow-[5px_5px_0_#111111] transition hover:-translate-y-0.5 active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0_#111111] whitespace-nowrap ${PLAY_BUTTON_THEME[selectedTheme]}`}
             >
               <Play className="relative z-10 h-5 w-5 fill-current" />
               <span className="relative z-10">Play {theme.shortName}</span>
             </button>
           ) : (
-            <div className="mt-4 w-full">
+            <div className="mt-3.5 w-full">
               <button
                 type="button"
                 onClick={() => {
                   sound.playClick();
                   onOpenLevels(selectedTheme);
                 }}
-                className={`font-display flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 px-5 py-3 text-base font-bold transition active:translate-y-0.5 whitespace-nowrap ${
-                  theme.isDark
-                    ? 'border-white/25 bg-white/10 text-slate-100 hover:bg-white/15'
-                    : 'border-slate-900/25 bg-white/80 text-slate-800 hover:bg-white'
-                }`}
+                className="font-display flex w-full cursor-pointer items-center justify-center gap-2 border-[3px] border-[#111111] bg-[#f5f0e2] px-5 py-3 text-base font-extrabold tracking-wide text-[#111111] uppercase shadow-[5px_5px_0_#111111] transition hover:-translate-y-0.5 hover:bg-white active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0_#111111] whitespace-nowrap"
               >
                 <Lock className="h-4 w-4 shrink-0" />
                 <span>View {theme.shortName} Walls</span>
               </button>
               {selectedRequirement && (
-                <p className="font-mono-num mt-1.5 text-center text-[11px] font-semibold opacity-75 lg:text-left">
+                <p className="font-mono-num mt-1.5 text-center text-[11px] font-bold opacity-85 lg:text-left">
                   Clear all {selectedRequirement.total} {selectedRequirement.prevPackName} walls to unlock ({selectedRequirement.cleared}/{selectedRequirement.total})
                 </p>
               )}
@@ -523,78 +532,114 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           )}
         </div>
 
-        {/* Right Zone: Live Interactive Hero Wall (Try Peeling Right on the Title Screen!) */}
-        <div className="hidden flex-col items-center sm:flex">
-          <div
-            className={`${theme.boardClass} relative aspect-square w-[250px] rounded-[24px] p-4 transition-all duration-500 lg:w-[340px] lg:p-5`}
-          >
-            <div className="relative h-full w-full">
-              {demoNotes.map((note, i) => {
-                const gap = 4;
-                const size = (100 - gap * 2) / 3;
-                const peelDir = peelingIds[note.id];
-                const isBumped = bumpedId?.id === note.id;
+        {/* Right Zone: Live Interactive Bauhaus Demo Wall + Mondrian Color Mosaic */}
+        <div className="hidden items-stretch gap-3 sm:flex">
+          <div className="flex flex-col items-center">
+            <div
+              className={`${theme.boardClass} relative aspect-square w-[250px] p-4 transition-all duration-500 lg:w-[328px] lg:p-5`}
+            >
+              <div className="relative h-full w-full">
+                {demoNotes.map((note, i) => {
+                  const gap = 4.2;
+                  const size = (100 - gap * 2) / 3;
+                  const peelDir = peelingIds[note.id];
+                  const isBumped = bumpedId?.id === note.id;
 
-                return (
-                  <button
-                    key={`${note.id}-${isBumped ? bumpedId.ts : 0}`}
-                    type="button"
-                    onClick={(e) => handleDemoTap(note, e.currentTarget)}
-                    aria-label={`Try peeling ${note.color} sticky note`}
-                    style={
-                      {
+                  return (
+                    <button
+                      key={`${note.id}-${isBumped ? bumpedId.ts : 0}`}
+                      type="button"
+                      onClick={(e) => handleDemoTap(note, e.currentTarget)}
+                      aria-label={`Try peeling ${note.color} sticky note`}
+                      style={{
                         left: `${note.c * (size + gap)}%`,
                         top: `${note.r * (size + gap)}%`,
                         width: `${size}%`,
                         height: `${size}%`,
-                        '--tilt': `${note.tilt}deg`,
-                        transform: `rotate(${note.tilt}deg)`,
                         animationDelay: !peelDir && !isBumped ? `${i * 25}ms` : undefined,
-                      } as React.CSSProperties
-                    }
-                    className={`sticky-note-card paper-${note.color} flex cursor-pointer items-center justify-center ${
-                      peelDir
-                        ? `is-peeling peel-${peelDir}`
-                        : isBumped
-                          ? `is-blocked bump-${bumpedId.dir}`
-                          : 'note-spawn'
-                    }`}
-                  >
-                    <svg
-                      viewBox="0 0 32 32"
-                      fill="none"
-                      style={{ transform: `rotate(${ARROW_ROT[note.dir]}deg)` }}
-                      className="h-9 w-9 lg:h-11 lg:w-11"
+                      }}
+                      className={`sticky-note-card paper-${note.color} flex cursor-pointer items-center justify-center ${
+                        peelDir
+                          ? `is-peeling peel-${peelDir}`
+                          : isBumped
+                            ? `is-blocked bump-${bumpedId.dir}`
+                            : 'note-spawn'
+                      }`}
                     >
-                      <path d="M5.5 16H24.5" stroke="currentColor" strokeWidth="3.8" strokeLinecap="round" />
-                      <path
-                        d="M17.5 8.5L25.5 16L17.5 23.5"
-                        stroke="currentColor"
-                        strokeWidth="3.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
-                );
-              })}
+                      {/* Top-right & Bottom-right Bauhaus corner folds */}
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 18 18"
+                        className="pointer-events-none absolute -top-[1px] -right-[1px] h-[22%] w-[22%]"
+                      >
+                        <polygon points="0,0 18,0 18,18" fill="#f5f0e2" />
+                        <polygon
+                          points="0,0 0,18 18,18"
+                          fill={DEMO_FOLD_FILL[note.color]}
+                          stroke="#111111"
+                          strokeWidth="2.2"
+                        />
+                      </svg>
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 18 18"
+                        className="pointer-events-none absolute -right-[1px] -bottom-[1px] h-[22%] w-[22%]"
+                      >
+                        <polygon points="18,0 18,18 0,18" fill="#f5f0e2" />
+                        <polygon
+                          points="0,0 18,0 0,18"
+                          fill={DEMO_FOLD_FILL[note.color]}
+                          stroke="#111111"
+                          strokeWidth="2.2"
+                        />
+                      </svg>
 
-              {demoResetting && (
-                <div className="font-display pointer-events-none absolute inset-0 flex items-center justify-center text-lg font-bold opacity-75">
-                  Nice peel!
-                </div>
-              )}
+                      <svg
+                        viewBox="0 0 36 36"
+                        fill="none"
+                        style={{ transform: `rotate(${ARROW_ROT[note.dir]}deg)` }}
+                        className="h-9 w-9 lg:h-11 lg:w-11"
+                      >
+                        <path
+                          d="M6 14.2H19.5V8.5L30.5 18L19.5 27.5V21.8H6V14.2Z"
+                          fill={DEMO_ARROW_FILL[note.color]}
+                          stroke="#111111"
+                          strokeWidth="2.4"
+                          strokeLinejoin="miter"
+                        />
+                      </svg>
+                    </button>
+                  );
+                })}
+
+                {demoResetting && (
+                  <div className="font-display pointer-events-none absolute inset-0 flex items-center justify-center text-lg font-black uppercase">
+                    Grid Cleared!
+                  </div>
+                )}
+              </div>
             </div>
+
+            <p className="font-mono-num mt-3 text-[11px] font-bold tracking-wide uppercase opacity-80">
+              Try tapping a note · {theme.surfaceLabel}
+            </p>
           </div>
 
-          <p className="mt-3 text-xs font-semibold opacity-65">
-            Try tapping a note above · {theme.surfaceLabel}
-          </p>
+          {/* Right-edge Decorative Mondrian Primary Color Column (echoes reference composition) */}
+          <div
+            aria-hidden="true"
+            className="hidden h-[328px] w-16 grid-rows-6 border-[3px] border-[#111111] shadow-[6px_6px_0_#111111] xl:grid"
+          >
+            <div className="row-span-2 border-b-[3px] border-[#111111] bg-[#d6302a]" />
+            <div className="row-span-1 border-b-[3px] border-[#111111] bg-[#2b56a3]" />
+            <div className="row-span-1 border-b-[3px] border-[#111111] bg-[#f5f0e2]" />
+            <div className="row-span-2 bg-[#e4b43c]" />
+          </div>
         </div>
       </main>
 
       {/* Single Flat Rotating Control-Hint Footer Line (cycles every 2s) */}
-      <footer className="z-20 flex min-h-8 shrink-0 items-center justify-center px-4 pb-4 text-center text-xs font-medium opacity-70">
+      <footer className="z-20 flex min-h-10 shrink-0 items-center justify-center border-t-[3px] border-[#111111] px-4 py-2 text-center text-xs font-bold tracking-wide">
         <span key={footerTipIndex} className="footer-tip-fade truncate whitespace-nowrap">
           {LOBBY_FOOTER_TIPS[footerTipIndex]}
         </span>

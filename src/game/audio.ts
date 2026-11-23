@@ -344,10 +344,24 @@ class SoundEngine {
 
     const bandpass = ctx.createBiquadFilter();
     bandpass.type = 'bandpass';
-    bandpass.Q.value = theme === 'fridge' ? 3.2 : theme === 'drafting' ? 2.8 : 2.1;
+    bandpass.Q.value =
+      theme === 'fridge' || theme === 'gallery'
+        ? 3.2
+        : theme === 'drafting' || theme === 'atelier'
+          ? 2.8
+          : 2.1;
 
-    const baseStart = theme === 'cork' ? 680 : theme === 'midnight' ? 760 : 940;
-    const baseEnd = theme === 'cork' ? 2700 : 3700;
+    const baseStart =
+      theme === 'cork'
+        ? 680
+        : theme === 'midnight'
+          ? 760
+          : theme === 'atelier'
+            ? 840
+            : theme === 'gallery'
+              ? 1020
+              : 940;
+    const baseEnd = theme === 'cork' ? 2700 : theme === 'atelier' ? 3300 : 3700;
     bandpass.frequency.setValueAtTime(baseStart, now);
     bandpass.frequency.exponentialRampToValueAtTime(baseEnd, now + peelDur);
 
@@ -402,7 +416,12 @@ class SoundEngine {
     const gain = ctx.createGain();
 
     osc.type = 'triangle';
-    const startFreq = theme === 'fridge' ? 185 : theme === 'cork' ? 140 : 160;
+    const startFreq =
+      theme === 'fridge' || theme === 'gallery'
+        ? 185
+        : theme === 'cork' || theme === 'atelier'
+          ? 142
+          : 160;
     osc.frequency.setValueAtTime(startFreq, now);
     osc.frequency.exponentialRampToValueAtTime(58, now + 0.13);
 

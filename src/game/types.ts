@@ -2,7 +2,7 @@ export type Direction = 'U' | 'D' | 'L' | 'R';
 
 export type PaperColor = 'canary' | 'coral' | 'sky' | 'mint' | 'apricot' | 'lavender';
 
-export type ThemeId = 'fridge' | 'cork' | 'drafting' | 'midnight';
+export type ThemeId = 'fridge' | 'cork' | 'drafting' | 'midnight' | 'atelier' | 'gallery';
 
 export type GameScreen = 'TITLE_MENU' | 'PLAYING' | 'PAUSED' | 'VICTORY' | 'FAILED';
 
@@ -79,7 +79,7 @@ export interface ThemeMeta {
   accentHex: string;
   /** Decorative label printed diegetically on the board frame */
   boardStamp: string;
-  fastenerType: 'magnet' | 'pushpin' | 'tape' | 'clip';
+  fastenerType: 'magnet' | 'pushpin' | 'tape' | 'clip' | 'rivet' | 'frame';
 }
 
 export interface UndoEntry {

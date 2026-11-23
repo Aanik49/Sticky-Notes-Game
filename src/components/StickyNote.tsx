@@ -36,15 +36,31 @@ const DIR_LABEL: Record<Direction, string> = {
 };
 
 const UNDER_BG: Record<PaperColor, string> = {
-  canary: '#facc15',
-  coral: '#fb7185',
-  sky: '#38bdf8',
-  mint: '#4ade80',
-  apricot: '#fb923c',
-  lavender: '#c084fc',
+  canary: '#e4b43c',
+  coral: '#d6302a',
+  sky: '#2b56a3',
+  mint: '#f3eee0',
+  apricot: '#dc6b2f',
+  lavender: '#1e6b64',
 };
 
-const PIN_COLORS = ['#dc2626', '#2563eb', '#059669', '#d97706', '#7c3aed'];
+const ARROW_FILL: Record<PaperColor, string> = {
+  canary: '#d6302a',   // Vermilion arrow on Ochre note
+  coral: '#e4b43c',    // Ochre arrow on Vermilion note
+  sky: '#f5f0e2',      // Archival cream arrow on Cobalt note
+  mint: '#2b56a3',     // Cobalt arrow on Archival Cream note
+  apricot: '#f5f0e2',  // Archival cream arrow on Cadmium Orange note
+  lavender: '#e4b43c', // Ochre arrow on Bauhaus Teal note
+};
+
+const CORNER_FOLD_FILL: Record<PaperColor, string> = {
+  canary: '#c99724',
+  coral: '#ad211c',
+  sky: '#1d3f7a',
+  mint: '#dad3c1',
+  apricot: '#b8511b',
+  lavender: '#144e49',
+};
 
 export const StickyNote: React.FC<StickyNoteProps> = ({
   note,
@@ -53,7 +69,6 @@ export const StickyNote: React.FC<StickyNoteProps> = ({
   widthPct,
   heightPct,
   cols,
-  theme,
   spawnIndex,
   animateSpawn,
   isPeeling = false,
@@ -65,9 +80,14 @@ export const StickyNote: React.FC<StickyNoteProps> = ({
   isFocused = false,
   onTap,
 }) => {
-  const pinColor = PIN_COLORS[(note.r * 5 + note.c * 3) % PIN_COLORS.length];
   const arrowSize =
-    cols >= 6 ? 'w-6 h-6 sm:w-8 sm:h-8' : cols === 5 ? 'w-7 h-7 sm:w-9 sm:h-9' : cols === 4 ? 'w-8 h-8 sm:w-11 sm:h-11' : 'w-10 h-10 sm:w-13 sm:h-13';
+    cols >= 6
+      ? 'w-6 h-6 sm:w-8 sm:h-8'
+      : cols === 5
+        ? 'w-7 h-7 sm:w-9 sm:h-9'
+        : cols === 4
+          ? 'w-8 h-8 sm:w-11 sm:h-11'
+          : 'w-10 h-10 sm:w-13 sm:h-13';
 
   const animClass = isPeeling
     ? `is-peeling peel-${peelDir ?? note.dir}`
@@ -81,6 +101,9 @@ export const StickyNote: React.FC<StickyNoteProps> = ({
             ? 'note-spawn'
             : '';
 
+  const foldColor = CORNER_FOLD_FILL[note.color];
+  const arrowFill = ARROW_FILL[note.color];
+
   return (
     <div
       style={{
@@ -91,15 +114,15 @@ export const StickyNote: React.FC<StickyNoteProps> = ({
       }}
       className="absolute"
     >
-      {/* Under-layer peeking edge when this note is a 2-sheet stack */}
+      {/* Sharp Bauhaus under-layer offset when this note is a 2-sheet stack */}
       {note.under && !isPeeling && (
         <div
           aria-hidden="true"
           style={{
             backgroundColor: UNDER_BG[note.under.color],
-            transform: `translate(4px, 5px) rotate(${note.tilt - 2.6}deg)`,
+            transform: 'translate(5px, 5px)',
           }}
-          className="pointer-events-none absolute inset-0 rounded-[5px] rounded-br-[18px] opacity-95 shadow-md ring-1 ring-black/10"
+          className="pointer-events-none absolute inset-0 border-2 border-[#111111]"
         />
       )}
 
@@ -109,85 +132,60 @@ export const StickyNote: React.FC<StickyNoteProps> = ({
         disabled={isPeeling}
         onClick={(e) => onTap(note, e.currentTarget)}
         aria-label={`Sticky note at row ${note.r + 1}, column ${note.c + 1}, arrow pointing ${DIR_LABEL[note.dir]}${note.under ? ', stacked 2 sheets' : ''}`}
-        style={
-          {
-            '--tilt': `${note.tilt}deg`,
-            transform: `rotate(${note.tilt}deg)`,
-            animationDelay: animateSpawn && !isPeeling && bumpKey === 0 && knockKey === 0
-              ? `${Math.min(spawnIndex * 18, 280)}ms`
+        style={{
+          animationDelay:
+            animateSpawn && !isPeeling && bumpKey === 0 && knockKey === 0
+              ? `${Math.min(spawnIndex * 18, 260)}ms`
               : undefined,
-          } as React.CSSProperties
-        }
-        className={`sticky-note-card paper-${note.color} inset-0 flex h-full w-full cursor-pointer items-center justify-center focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500 ${
-          isFocused ? 'ring-3 ring-sky-500 ring-offset-2' : ''
+        }}
+        className={`sticky-note-card paper-${note.color} inset-0 flex h-full w-full cursor-pointer items-center justify-center focus:outline-none focus-visible:ring-4 focus-visible:ring-[#2b56a3] ${
+          isFocused ? 'ring-3 ring-[#2b56a3] ring-offset-2' : ''
         } ${animClass}`}
       >
-        {/* Diegetic Fastener Per Theme */}
-        {theme.fastenerType === 'pushpin' && (
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute -top-1.5 left-1/2 z-10 -translate-x-1/2"
-          >
-            <span
-              className="block h-3.5 w-3.5 rounded-full shadow-md ring-1 ring-black/20"
-              style={{
-                background: `radial-gradient(circle at 32% 30%, #ffffff 0%, ${pinColor} 42%, #111827 120%)`,
-              }}
-            />
-          </span>
-        )}
+        {/* Top-Right Geometric Dog-Ear Corner Fold */}
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 18 18"
+          className="pointer-events-none absolute -top-[1px] -right-[1px] h-[22%] w-[22%] max-h-[16px] max-w-[16px] min-h-[10px] min-w-[10px]"
+        >
+          <polygon points="0,0 18,0 18,18" fill="#f5f0e2" />
+          <polygon points="0,0 0,18 18,18" fill={foldColor} stroke="#111111" strokeWidth="2.2" strokeLinejoin="miter" />
+        </svg>
 
-        {theme.fastenerType === 'magnet' && (
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute top-1 left-1/2 z-10 h-2.5 w-2.5 -translate-x-1/2 rounded-full border border-white/80 bg-gradient-to-br from-white via-slate-200 to-slate-400 shadow-sm"
-          />
-        )}
+        {/* Bottom-Right Geometric Dog-Ear Corner Fold */}
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 18 18"
+          className="pointer-events-none absolute -right-[1px] -bottom-[1px] h-[22%] w-[22%] max-h-[16px] max-w-[16px] min-h-[10px] min-w-[10px]"
+        >
+          <polygon points="18,0 18,18 0,18" fill="#f5f0e2" />
+          <polygon points="0,0 18,0 0,18" fill={foldColor} stroke="#111111" strokeWidth="2.2" strokeLinejoin="miter" />
+        </svg>
 
-        {theme.fastenerType === 'tape' && (
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute -top-1.5 left-1/2 z-10 h-3 w-8 -translate-x-1/2 -rotate-2 rounded-[2px] border border-white/30 bg-amber-50/65 shadow-xs backdrop-blur-[1px]"
-          />
-        )}
-
-        {theme.fastenerType === 'clip' && (
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute -top-1 left-1/2 z-10 h-2 w-6 -translate-x-1/2 rounded-b-sm bg-gradient-to-b from-amber-300 to-amber-600 shadow-sm"
-          />
-        )}
-
-        {/* Stacked 2-sheet corner counter indicator */}
+        {/* Stacked 2-sheet square ink counter badge (top-left so corner folds stay clean) */}
         {note.under && (
           <span
             aria-hidden="true"
-            className="font-mono-num pointer-events-none absolute top-1 right-1 z-10 flex h-4 min-w-4 items-center justify-center rounded-sm bg-black/15 px-1 text-[10px] leading-none font-bold"
+            className="font-mono-num pointer-events-none absolute top-0.5 left-0.5 z-10 flex h-4 min-w-4 items-center justify-center border border-[#111111] bg-[#111111] px-1 text-[9px] leading-none font-bold text-[#f5f0e2]"
           >
             ×2
           </span>
         )}
 
-        {/* Hand-inked crisp directional marker arrow */}
+        {/* Bold Bauhaus Black-Outlined Filled Block Arrow */}
         <svg
           aria-hidden="true"
-          viewBox="0 0 32 32"
+          viewBox="0 0 36 36"
           fill="none"
           style={{ transform: `rotate(${ARROW_ROT[note.dir]}deg)` }}
-          className={`${arrowSize} pointer-events-none drop-shadow-[0_1px_0_rgba(255,255,255,0.35)] transition-transform duration-150`}
+          className={`${arrowSize} pointer-events-none transition-transform duration-150`}
         >
           <path
-            d="M5.5 16H24.5"
-            stroke="currentColor"
-            strokeWidth="3.8"
-            strokeLinecap="round"
-          />
-          <path
-            d="M17.5 8.5L25.5 16L17.5 23.5"
-            stroke="currentColor"
-            strokeWidth="3.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+            d="M6 14.2H19.5V8.5L30.5 18L19.5 27.5V21.8H6V14.2Z"
+            fill={arrowFill}
+            stroke="#111111"
+            strokeWidth="2.4"
+            strokeLinejoin="miter"
           />
         </svg>
       </button>

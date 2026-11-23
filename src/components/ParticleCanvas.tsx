@@ -23,7 +23,7 @@ interface Particle {
   wobblePhase: number;
 }
 
-const VICTORY_COLORS = ['#fde047', '#fb7185', '#38bdf8', '#4ade80', '#fb923c', '#c084fc'];
+const VICTORY_COLORS = ['#e4b43c', '#d6302a', '#2b56a3', '#f3eee0', '#dc6b2f', '#1e6b64'];
 
 export const ParticleCanvas = forwardRef<ParticleCanvasHandle>(function ParticleCanvas(
   _props,
@@ -79,7 +79,7 @@ export const ParticleCanvas = forwardRef<ParticleCanvasHandle>(function Particle
           ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
           ctx.strokeStyle = p.color;
           ctx.globalAlpha = alpha;
-          ctx.lineWidth = Math.max(1, 3.5 * (1 - t));
+          ctx.lineWidth = Math.max(1.5, 3.5 * (1 - t));
           ctx.stroke();
           continue;
         }
@@ -100,16 +100,12 @@ export const ParticleCanvas = forwardRef<ParticleCanvasHandle>(function Particle
           const scaleY = 0.45 + 0.55 * Math.abs(Math.cos(p.life * 7 + p.wobblePhase));
           ctx.scale(1, scaleY);
           const half = p.size / 2;
-          ctx.beginPath();
-          ctx.roundRect(-half, -half, p.size, p.size, [2, 2, 5, 2]);
-          ctx.fill();
-          // Subtle fold highlight on victory confetti squares
-          ctx.fillStyle = 'rgba(255,255,255,0.35)';
-          ctx.fillRect(-half, -half, p.size, p.size * 0.24);
+          ctx.fillRect(-half, -half, p.size, p.size);
+          ctx.strokeStyle = '#111111';
+          ctx.lineWidth = 1.25;
+          ctx.strokeRect(-half, -half, p.size, p.size);
         } else {
-          ctx.beginPath();
-          ctx.roundRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.7, 2);
-          ctx.fill();
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.75);
         }
         ctx.restore();
       }

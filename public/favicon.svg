@@ -1,43 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
-  <defs>
-    <linearGradient id="bg" x1="12" y1="8" x2="116" y2="120" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#1e293b" />
-      <stop offset="100%" stop-color="#0f172a" />
-    </linearGradient>
-    <linearGradient id="canary" x1="28" y1="22" x2="100" y2="104" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#fef08a" />
-      <stop offset="72%" stop-color="#fde047" />
-      <stop offset="100%" stop-color="#facc15" />
-    </linearGradient>
-    <filter id="drop" x="-15%" y="-15%" width="140%" height="145%">
-      <feDropShadow dx="0" dy="6" stdDeviation="5" flood-color="#020617" flood-opacity="0.45" />
-    </filter>
-  </defs>
+  <!-- Archival Cream Canvas & Mondrian Primary Blocks -->
+  <rect x="4" y="4" width="120" height="120" fill="#F5F0E2" stroke="#111111" stroke-width="6" />
+  <!-- Top-left Vermilion Red Block -->
+  <rect x="7" y="7" width="38" height="38" fill="#D6302A" />
+  <!-- Bottom-left Cobalt Blue Block -->
+  <rect x="7" y="83" width="38" height="38" fill="#2B56A3" />
+  <!-- Top-right Ochre Block -->
+  <rect x="83" y="7" width="38" height="38" fill="#E4B43C" />
+  <!-- Architectural Grid Lines -->
+  <path d="M45 4V124M83 4V124M4 45H124M4 83H124" stroke="#111111" stroke-width="5" />
 
-  <!-- Rounded App Squircle Background -->
-  <rect x="4" y="4" width="120" height="120" rx="28" fill="url(#bg)" />
-  <rect x="6" y="6" width="116" height="116" rx="26" stroke="#ffffff" stroke-opacity="0.12" stroke-width="2" />
-
-  <!-- Back Coral Sticky Note -->
-  <g transform="translate(18 28) rotate(-11)" filter="url(#drop)">
-    <rect width="58" height="58" rx="8" fill="#fb7185" />
-    <rect width="58" height="13" rx="6" fill="#ffffff" fill-opacity="0.28" />
-  </g>
-
-  <!-- Back Sky Sticky Note -->
-  <g transform="translate(54 18) rotate(10)" filter="url(#drop)">
-    <rect width="58" height="58" rx="8" fill="#38bdf8" />
-    <rect width="58" height="13" rx="6" fill="#ffffff" fill-opacity="0.28" />
-  </g>
-
-  <!-- Hero Canary Sticky Note with Curled Corner & Bold Arrow -->
-  <g transform="translate(27 29) rotate(-2)" filter="url(#drop)">
-    <path d="M9 0 H65 A9 9 0 0 1 74 9 V54 L54 74 H9 A9 9 0 0 1 0 65 V9 A9 9 0 0 1 9 0 Z" fill="url(#canary)" />
-    <rect x="0" y="0" width="74" height="16" rx="7" fill="#ffffff" fill-opacity="0.34" />
-    <!-- Curled Corner Fold -->
-    <path d="M54 74 V58 A4 4 0 0 1 58 54 H74 Z" fill="#eab308" />
-    <!-- Hand-inked Directional Arrow -->
-    <path d="M18 41 H51" stroke="#3f2104" stroke-width="7.5" stroke-linecap="round" />
-    <path d="M38 28 L53 41 L38 54" stroke="#3f2104" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- Center Hero Bauhaus Ochre Sticky Note with Folded Corners & Red Block Arrow -->
+  <g transform="translate(26 26)">
+    <rect x="5" y="5" width="76" height="76" fill="#111111" />
+    <path d="M0 0 H62 L76 14 V62 L62 76 H0 Z" fill="#E4B43C" stroke="#111111" stroke-width="4.5" stroke-linejoin="miter" />
+    <!-- Top-right & Bottom-right Dog-Ear Corner Folds -->
+    <path d="M62 0 V14 H76 Z" fill="#C99622" stroke="#111111" stroke-width="3.2" stroke-linejoin="round" />
+    <path d="M62 76 V62 H76 Z" fill="#C99622" stroke="#111111" stroke-width="3.2" stroke-linejoin="round" />
+    <!-- Bold Black-Outlined Vermilion Block Arrow -->
+    <path d="M16 32 H40 V21 L58 38 L40 55 V44 H16 Z" fill="#D6302A" stroke="#111111" stroke-width="3.5" stroke-linejoin="miter" />
   </g>
 </svg>

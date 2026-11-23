@@ -45,7 +45,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   focusedCell,
   onTapNote,
 }) => {
-  const gapPct = cols >= 6 ? 2.0 : cols === 5 ? 2.3 : 2.8;
+  const gapPct = cols >= 6 ? 2.1 : cols === 5 ? 2.4 : 2.9;
   const cellW = (100 - gapPct * (cols - 1)) / cols;
   const cellH = (100 - gapPct * (rows - 1)) / rows;
 
@@ -64,35 +64,57 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     return { x: 103, y: start.y };
   };
 
+  const slotBorderClass =
+    theme.id === 'drafting'
+      ? 'border-[#f5f0e2]/25 bg-[#12423d]/35'
+      : theme.id === 'midnight'
+        ? 'border-[#f5f0e2]/18 bg-[#0e1017]/40'
+        : 'border-[#111111]/25 bg-black/[0.025]';
+
+  const stampColorClass =
+    theme.id === 'drafting'
+      ? 'text-[#f5f0e2]/65'
+      : theme.id === 'midnight'
+        ? 'text-[#e4b43c]/70'
+        : 'text-[#111111]/60';
+
   return (
     <div className="relative flex items-center justify-center">
-      {/* Diegetic Fridge Handle accent on right side for Fridge theme */}
-      {theme.id === 'fridge' && (
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -right-4 top-1/2 hidden h-44 w-3 -translate-y-1/2 rounded-full border border-slate-300 bg-gradient-to-r from-white via-slate-200 to-slate-400 shadow-lg sm:block"
-        />
-      )}
-
-      {/* Main Responsive Square Board */}
+      {/* Subtle Architectural Mondrian Side Accent Strip on wide viewports */}
       <div
-        className={`${theme.boardClass} relative aspect-square w-[min(calc(100vw-28px),calc(100dvh-236px),540px)] min-w-[264px] rounded-[24px] transition-shadow duration-300`}
+        aria-hidden="true"
+        className="pointer-events-none mr-3 hidden flex-col border-[3px] border-[#111111] shadow-[4px_4px_0_#111111] md:flex"
       >
-        {/* Corner Hardware Details for Cork Board */}
-        {theme.id === 'cork' && (
-          <>
-            <span aria-hidden="true" className="pointer-events-none absolute -top-2 -left-2 h-3.5 w-3.5 rounded-full bg-gradient-to-br from-amber-200 to-amber-700 shadow" />
-            <span aria-hidden="true" className="pointer-events-none absolute -top-2 -right-2 h-3.5 w-3.5 rounded-full bg-gradient-to-br from-amber-200 to-amber-700 shadow" />
-            <span aria-hidden="true" className="pointer-events-none absolute -bottom-2 -left-2 h-3.5 w-3.5 rounded-full bg-gradient-to-br from-amber-200 to-amber-700 shadow" />
-            <span aria-hidden="true" className="pointer-events-none absolute -bottom-2 -right-2 h-3.5 w-3.5 rounded-full bg-gradient-to-br from-amber-200 to-amber-700 shadow" />
-          </>
-        )}
+        <span className="h-14 w-3.5 border-b-[3px] border-[#111111] bg-[#d6302a]" />
+        <span className="h-20 w-3.5 border-b-[3px] border-[#111111] bg-[#e4b43c]" />
+        <span className="h-14 w-3.5 bg-[#2b56a3]" />
+      </div>
 
-        {/* Ruler Markings for Drafting Desk */}
-        {theme.id === 'drafting' && (
+      {/* Main Responsive Square Bauhaus Grid Board */}
+      <div
+        className={`${theme.boardClass} relative aspect-square w-[min(calc(100vw-28px),calc(100dvh-236px),532px)] min-w-[264px] rounded-none transition-colors duration-300`}
+      >
+        {/* Crisp Architectural Corner Ticks */}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute top-0 left-0 h-2.5 w-2.5 border-r-2 border-b-2 border-[#111111] bg-[#d6302a]"
+        />
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute top-0 right-0 h-2.5 w-2.5 border-b-2 border-l-2 border-[#111111] bg-[#2b56a3]"
+        />
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-0 left-0 h-2.5 w-2.5 border-t-2 border-r-2 border-[#111111] bg-[#e4b43c]"
+        />
+
+        {/* Subtle Architectural Scale Markings on Drafting / Atelier / Gallery */}
+        {(theme.id === 'drafting' || theme.id === 'atelier' || theme.id === 'gallery') && (
           <div
             aria-hidden="true"
-            className="font-mono-num pointer-events-none absolute top-1.5 left-4 right-4 flex justify-between text-[9px] font-medium tracking-widest text-teal-100/55"
+            className={`font-mono-num pointer-events-none absolute top-1 left-4 right-4 flex justify-between text-[9px] font-bold tracking-widest ${
+              theme.id === 'drafting' ? 'text-[#f5f0e2]/60' : 'text-[#111111]/50'
+            }`}
           >
             {Array.from({ length: cols + 1 }).map((_, idx) => (
               <span key={idx}>{idx * 10}</span>
@@ -100,25 +122,17 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           </div>
         )}
 
-        {/* Subtle Diegetic Surface Stamp along bottom border */}
+        {/* Diegetic Bauhaus Grid Stamp along bottom border */}
         <div
           aria-hidden="true"
-          className={`font-mono-num pointer-events-none absolute bottom-1.5 right-3.5 text-[9px] font-semibold tracking-wider ${
-            theme.id === 'drafting'
-              ? 'text-teal-100/45'
-              : theme.id === 'midnight'
-                ? 'text-slate-400/45'
-                : theme.id === 'cork'
-                  ? 'text-[#3e220d]/45'
-                  : 'text-slate-500/45'
-          }`}
+          className={`font-mono-num pointer-events-none absolute bottom-1 right-3 text-[9px] font-bold tracking-widest ${stampColorClass}`}
         >
           {theme.boardStamp}
         </div>
 
         {/* Inner Grid Padding Area */}
         <div className="absolute inset-4 sm:inset-5">
-          {/* Subtle Slot Guides */}
+          {/* Crisp Architectural Rectilinear Slot Guides */}
           <div
             aria-hidden="true"
             style={{
@@ -129,22 +143,11 @@ export const GameBoard: React.FC<GameBoardProps> = ({
             className="pointer-events-none absolute inset-0 grid"
           >
             {Array.from({ length: rows * cols }).map((_, idx) => (
-              <div
-                key={idx}
-                className={`rounded-lg border ${
-                  theme.id === 'drafting'
-                    ? 'border-teal-200/15 bg-teal-950/15'
-                    : theme.id === 'midnight'
-                      ? 'border-slate-500/15 bg-black/15'
-                      : theme.id === 'cork'
-                        ? 'border-[#4a2810]/18 bg-[#4a2810]/6'
-                        : 'border-slate-400/20 bg-white/25'
-                }`}
-              />
+              <div key={idx} className={`rounded-none border ${slotBorderClass}`} />
             ))}
           </div>
 
-          {/* Static Diegetic Obstacles */}
+          {/* Static Bauhaus Geometric Obstacles */}
           {obstacles.map((obs) => {
             const isKnocked =
               blockerFeedback !== null &&
@@ -166,7 +169,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
             );
           })}
 
-          {/* Active Interactive Sticky Notes */}
+          {/* Active Interactive Bauhaus Sticky Notes */}
           {notes.map((note, idx) => {
             const isBumped = blockerFeedback !== null && blockerFeedback.tappedId === note.id;
             const isKnocked =
@@ -196,7 +199,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
             );
           })}
 
-          {/* Peeling-Out Flying Ghost Notes (never block rapid taps!) */}
+          {/* Peeling-Out Flying Ghost Notes */}
           {peelingGhosts.map((ghost) => (
             <StickyNote
               key={ghost.key}
@@ -232,12 +235,19 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                     y1={start.y}
                     x2={end.x}
                     y2={end.y}
-                    stroke="#ef4444"
-                    strokeWidth="2.2"
-                    strokeDasharray="3.2 2.4"
-                    strokeLinecap="round"
+                    stroke="#d6302a"
+                    strokeWidth="2.4"
+                    strokeDasharray="3.2 2.2"
                   />
-                  <circle cx={end.x} cy={end.y} r="3.4" fill="#ef4444" />
+                  <rect
+                    x={end.x - 3}
+                    y={end.y - 3}
+                    width="6"
+                    height="6"
+                    fill="#d6302a"
+                    stroke="#111111"
+                    strokeWidth="1"
+                  />
                 </g>
               );
             })()}
@@ -253,16 +263,25 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                     x2={end.x}
                     y2={end.y}
                     stroke="#10b981"
-                    strokeWidth="2.2"
-                    strokeDasharray="3 2.5"
-                    strokeLinecap="round"
-                    opacity="0.88"
+                    strokeWidth="2.4"
+                    strokeDasharray="3.2 2.2"
+                    opacity="0.92"
                   />
                 </g>
               );
             })()}
           </svg>
         </div>
+      </div>
+
+      {/* Right Complementary Bauhaus Accent Strip on wide viewports */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none ml-3 hidden flex-col border-[3px] border-[#111111] shadow-[4px_4px_0_#111111] md:flex"
+      >
+        <span className="h-16 w-3.5 border-b-[3px] border-[#111111] bg-[#2b56a3]" />
+        <span className="h-14 w-3.5 border-b-[3px] border-[#111111] bg-[#f5f0e2]" />
+        <span className="h-18 w-3.5 bg-[#d6302a]" />
       </div>
     </div>
   );

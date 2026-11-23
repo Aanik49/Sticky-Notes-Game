@@ -27,12 +27,12 @@ export const PAPER_COLORS: PaperColor[] = [
 ];
 
 export const PAPER_HEX: Record<PaperColor, string> = {
-  canary: '#fde047',
-  coral: '#fb7185',
-  sky: '#38bdf8',
-  mint: '#4ade80',
-  apricot: '#fb923c',
-  lavender: '#c084fc',
+  canary: '#e4b43c',
+  coral: '#d6302a',
+  sky: '#2b56a3',
+  mint: '#f3eee0',
+  apricot: '#dc6b2f',
+  lavender: '#1e6b64',
 };
 
 export interface PathCheckResult {

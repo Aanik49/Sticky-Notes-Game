@@ -12,8 +12,8 @@ interface BoardObstacleProps {
 }
 
 /**
- * Diegetic immovable blocker on the board (ceramic magnet, wooden cork peg,
- * brass drafting weight, or steel studio knob) that blocks sticky notes in its lane.
+ * Bauhaus Grid Art immovable architectural block: sharp ink-framed primary
+ * geometry (solid vermilion, ochre disc, cobalt square, or obsidian cross-block).
  */
 export const BoardObstacle: React.FC<BoardObstacleProps> = ({
   obstacle,
@@ -39,35 +39,58 @@ export const BoardObstacle: React.FC<BoardObstacleProps> = ({
       }`}
     >
       {theme.id === 'fridge' && (
-        /* Glossy Ceramic Refrigerator Magnet */
-        <div className="relative flex h-[74%] w-[74%] items-center justify-center rounded-full border-2 border-white/90 bg-gradient-to-br from-slate-600 via-slate-700 to-slate-900 shadow-[0_8px_16px_-3px_rgba(15,23,42,0.45),inset_0_2px_4px_rgba(255,255,255,0.4)]">
-          <div className="h-[54%] w-[54%] rounded-full border border-white/40 bg-gradient-to-br from-rose-400 to-rose-600 shadow-inner" />
-          <div className="absolute top-[16%] left-[22%] h-[18%] w-[26%] -rotate-30 rounded-full bg-white/45" />
+        /* Solid Bauhaus Vermilion Square Block (mirrors the reference bottom-left red square) */
+        <div className="relative flex h-full w-full items-center justify-center border-2 border-[#111111] bg-[#d6302a] shadow-[2px_2px_0_#111111]">
+          <div className="h-[34%] w-[34%] border-2 border-[#111111] bg-[#111111]" />
         </div>
       )}
 
       {theme.id === 'cork' && (
-        /* Carved Oak Peg / Heavy Brass Map Tack */
-        <div className="relative flex h-[72%] w-[72%] items-center justify-center rounded-full border-2 border-[#4a2b14] bg-gradient-to-br from-[#8c5830] via-[#6d4120] to-[#46260f] shadow-[0_10px_18px_-4px_rgba(36,18,6,0.6),inset_0_2px_4px_rgba(255,220,180,0.35)]">
-          <div className="h-[44%] w-[44%] rounded-full border border-amber-200/50 bg-gradient-to-br from-amber-300 to-amber-600 shadow" />
+        /* Bauhaus Ink Frame with Centered Ochre Circle */
+        <div className="relative flex h-full w-full items-center justify-center border-2 border-[#111111] bg-[#111111] shadow-[2px_2px_0_#111111]">
+          <div className="h-[58%] w-[58%] rounded-full border-2 border-[#111111] bg-[#e4b43c]" />
         </div>
       )}
 
       {theme.id === 'drafting' && (
-        /* Anodized Brass Architect's Paperweight */
-        <div className="relative flex h-[72%] w-[72%] items-center justify-center rounded-xl border-2 border-amber-200/50 bg-gradient-to-br from-amber-300 via-amber-500 to-amber-700 shadow-[0_10px_18px_-4px_rgba(8,25,22,0.65),inset_0_1px_2px_rgba(255,255,255,0.6)]">
-          <svg viewBox="0 0 24 24" className="h-[52%] w-[52%] text-amber-950/75" fill="none" stroke="currentColor" strokeWidth="2.4">
-            <path d="M12 4v16M4 12h16" strokeLinecap="round" />
-            <circle cx="12" cy="12" r="5" />
+        /* Bauhaus Drafting Crosshair Plate */
+        <div className="relative flex h-full w-full items-center justify-center border-2 border-[#0b1615] bg-[#f5f0e2] shadow-[2px_2px_0_#0b1615]">
+          <svg viewBox="0 0 32 32" className="h-[72%] w-[72%]" fill="none">
+            <line x1="4" y1="4" x2="28" y2="28" stroke="#111111" strokeWidth="2.8" />
+            <line x1="28" y1="4" x2="4" y2="28" stroke="#111111" strokeWidth="2.8" />
+            <rect x="11" y="11" width="10" height="10" fill="#d6302a" stroke="#111111" strokeWidth="2" />
           </svg>
         </div>
       )}
 
       {theme.id === 'midnight' && (
-        /* Knurled Industrial Steel Peg Knob */
-        <div className="relative flex h-[72%] w-[72%] items-center justify-center rounded-full border-2 border-slate-400/40 bg-gradient-to-br from-slate-600 via-slate-800 to-slate-950 shadow-[0_10px_20px_rgba(0,0,0,0.75),inset_0_1px_2px_rgba(255,255,255,0.28)]">
-          <div className="h-[46%] w-[46%] rounded-full border border-amber-400/50 bg-slate-900 shadow-inner" />
-          <div className="absolute h-1.5 w-1.5 rounded-full bg-amber-400" />
+        /* Bauhaus Obsidian & Ochre Geometric Monolith */
+        <div className="relative flex h-full w-full items-center justify-center border-2 border-[#e4b43c] bg-[#0b0d12] shadow-[2px_2px_0_#07080b]">
+          <div className="h-[46%] w-[46%] rotate-45 border-2 border-[#0b0d12] bg-[#e4b43c]" />
+        </div>
+      )}
+
+      {theme.id === 'atelier' && (
+        /* Bauhaus Atelier Split Diagonal Print Block */
+        <div className="relative flex h-full w-full items-center justify-center overflow-hidden border-2 border-[#111111] bg-[#111111] shadow-[2px_2px_0_#111111]">
+          <svg viewBox="0 0 36 36" className="h-full w-full" preserveAspectRatio="none">
+            <polygon points="0,0 36,0 0,36" fill="#2b56a3" />
+            <polygon points="36,0 36,36 0,36" fill="#111111" />
+            <circle cx="18" cy="18" r="6.5" fill="#e4b43c" stroke="#111111" strokeWidth="2" />
+          </svg>
+        </div>
+      )}
+
+      {theme.id === 'gallery' && (
+        /* Bauhaus Gallery Constructivist Cobalt & Red Split Block */
+        <div className="relative flex h-full w-full items-center justify-center overflow-hidden border-2 border-[#111111] bg-[#2b56a3] shadow-[2px_2px_0_#111111]">
+          <svg viewBox="0 0 36 36" className="h-full w-full" preserveAspectRatio="none">
+            <rect x="0" y="0" width="18" height="36" fill="#111111" />
+            <rect x="18" y="0" width="18" height="18" fill="#d6302a" />
+            <rect x="18" y="18" width="18" height="18" fill="#e4b43c" />
+            <line x1="18" y1="0" x2="18" y2="36" stroke="#111111" strokeWidth="2.5" />
+            <line x1="18" y1="18" x2="36" y2="18" stroke="#111111" strokeWidth="2.5" />
+          </svg>
         </div>
       )}
     </div>

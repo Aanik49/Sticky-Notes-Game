@@ -3,60 +3,93 @@ import { DailyMission, LevelDef, LevelRecord, ThemeId, ThemeMeta } from './types
 
 export const LEVELS_PER_PACK = 18;
 
-export const THEME_ORDER: ThemeId[] = ['fridge', 'cork', 'drafting', 'midnight'];
+export const THEME_ORDER: ThemeId[] = [
+  'fridge',
+  'cork',
+  'drafting',
+  'midnight',
+  'atelier',
+  'gallery',
+];
 
 export const THEMES: Record<ThemeId, ThemeMeta> = {
   fridge: {
     id: 'fridge',
-    name: 'Kitchen Fridge',
+    name: 'Kitchen Grid',
     shortName: 'Fridge',
-    surfaceLabel: 'Enamel Steel Door',
-    tagline: 'Sunny morning memos pinned with ceramic magnets',
+    surfaceLabel: 'Ivory Bauhaus Grid',
+    tagline: 'Primary color notes aligned on crisp ivory architectural stock',
     worldClass: 'world-fridge',
     boardClass: 'board-fridge',
     isDark: false,
-    accentHex: '#0284c7',
-    boardStamp: 'KITCHEN DOOR · PACK 01',
+    accentHex: '#d6302a',
+    boardStamp: 'GRID 01 · FRIDGE',
     fastenerType: 'magnet',
   },
   cork: {
     id: 'cork',
-    name: 'Bulletin Board',
+    name: 'Ochre Bulletin',
     shortName: 'Cork Board',
-    surfaceLabel: 'Oak-Framed Cork',
-    tagline: 'Classroom reminders tacked with colorful pushpins',
+    surfaceLabel: 'Mustard Ochre Grid',
+    tagline: 'Warm ochre plates framed in heavy black studio rules',
     worldClass: 'world-cork',
     boardClass: 'board-cork',
     isDark: false,
-    accentHex: '#b45309',
-    boardStamp: 'ROOM 204 · PACK 02',
+    accentHex: '#e4b43c',
+    boardStamp: 'GRID 02 · CORK',
     fastenerType: 'pushpin',
   },
   drafting: {
     id: 'drafting',
-    name: 'Drafting Desk',
+    name: 'Drafting Matrix',
     shortName: 'Drafting',
-    surfaceLabel: 'Self-Healing Cutting Mat',
-    tagline: 'Studio layouts taped cleanly over millimeter grid lines',
+    surfaceLabel: 'Teal Millimeter Grid',
+    tagline: 'Measured architectural sheets laid over deep teal drafting rules',
     worldClass: 'world-drafting',
     boardClass: 'board-drafting',
     isDark: true,
-    accentHex: '#2dd4bf',
-    boardStamp: 'STUDIO MAT 1:50 · PACK 03',
+    accentHex: '#1e6b64',
+    boardStamp: 'GRID 03 · DRAFTING',
     fastenerType: 'tape',
   },
   midnight: {
     id: 'midnight',
-    name: 'Midnight Studio',
+    name: 'Nocturne Studio',
     shortName: 'Midnight',
-    surfaceLabel: 'Lamp-Lit Slate Pegboard',
-    tagline: 'Late-night brainstorm stacks under warm desk light',
+    surfaceLabel: 'Obsidian Ink Grid',
+    tagline: 'High-contrast nocturnal grid with primary geometric accents',
     worldClass: 'world-midnight',
     boardClass: 'board-midnight',
     isDark: true,
-    accentHex: '#f59e0b',
-    boardStamp: 'LATE SHIFT · PACK 04',
+    accentHex: '#e4b43c',
+    boardStamp: 'GRID 04 · MIDNIGHT',
     fastenerType: 'clip',
+  },
+  atelier: {
+    id: 'atelier',
+    name: 'Vermilion Atelier',
+    shortName: 'Atelier',
+    surfaceLabel: 'Vermilion Print Grid',
+    tagline: 'Bold vermilion poster wall built for layered studio proofs',
+    worldClass: 'world-atelier',
+    boardClass: 'board-atelier',
+    isDark: true,
+    accentHex: '#d6302a',
+    boardStamp: 'GRID 05 · ATELIER',
+    fastenerType: 'rivet',
+  },
+  gallery: {
+    id: 'gallery',
+    name: 'Cobalt Gallery',
+    shortName: 'Gallery',
+    surfaceLabel: 'Cobalt Exhibition Grid',
+    tagline: 'Constructivist cobalt wall curated with master-grade interlocking grids',
+    worldClass: 'world-gallery',
+    boardClass: 'board-gallery',
+    isDark: true,
+    accentHex: '#2b56a3',
+    boardStamp: 'GRID 06 · GALLERY',
+    fastenerType: 'frame',
   },
 };
 
@@ -96,7 +129,7 @@ function buildPackLevels(
 }
 
 /**
- * 72 curated, progressively challenging levels across 4 themed packs (18 levels per pack).
+ * 108 curated, progressively challenging levels across 6 themed packs (18 levels per pack).
  * Every level is verified 100% deadlock-free at initialization.
  */
 const RAW_PACK_LEVELS: Record<ThemeId, LevelDef[]> = {
@@ -243,6 +276,48 @@ const RAW_PACK_LEVELS: Record<ThemeId, LevelDef[]> = {
     { title: 'Golden Master', difficulty: 'Master', size: 6, notes: 30, obstacles: 4, doubles: 5 },
     { title: 'Dawn Glow', difficulty: 'Master', size: 6, notes: 31, obstacles: 3, doubles: 6 },
     { title: 'Clean Slate', difficulty: 'Master', size: 6, notes: 32, obstacles: 4, doubles: 6 },
+  ]),
+
+  atelier: buildPackLevels('atelier', 5000, [], [
+    { title: 'Red Square', difficulty: 'Clever', size: 4, notes: 13, obstacles: 1, doubles: 2 },
+    { title: 'Woodblock Cut', difficulty: 'Clever', size: 4, notes: 14, obstacles: 2, doubles: 2 },
+    { title: 'Linocut Press', difficulty: 'Tricky', size: 5, notes: 17, obstacles: 2, doubles: 3 },
+    { title: 'Type Foundry', difficulty: 'Tricky', size: 5, notes: 18, obstacles: 2, doubles: 3 },
+    { title: 'Poster Proof', difficulty: 'Tricky', size: 5, notes: 19, obstacles: 3, doubles: 3 },
+    { title: 'Weimar Loom', difficulty: 'Tricky', size: 5, notes: 20, obstacles: 3, doubles: 3 },
+    { title: 'Ink Roller', difficulty: 'Expert', size: 5, notes: 21, obstacles: 3, doubles: 4 },
+    { title: 'Primary Study', difficulty: 'Expert', size: 5, notes: 22, obstacles: 3, doubles: 4 },
+    { title: 'Silkscreen I', difficulty: 'Expert', size: 6, notes: 25, obstacles: 3, doubles: 4 },
+    { title: 'Dessau Wing', difficulty: 'Expert', size: 6, notes: 26, obstacles: 3, doubles: 4 },
+    { title: 'Color Wheel', difficulty: 'Expert', size: 6, notes: 27, obstacles: 4, doubles: 4 },
+    { title: 'Form & Line', difficulty: 'Expert', size: 6, notes: 28, obstacles: 4, doubles: 5 },
+    { title: 'Steel Tube', difficulty: 'Master', size: 6, notes: 29, obstacles: 4, doubles: 5 },
+    { title: 'Folio Sheet', difficulty: 'Master', size: 6, notes: 29, obstacles: 4, doubles: 5 },
+    { title: 'Axis Tension', difficulty: 'Master', size: 6, notes: 30, obstacles: 4, doubles: 6 },
+    { title: 'Litho Matrix', difficulty: 'Master', size: 6, notes: 31, obstacles: 4, doubles: 6 },
+    { title: 'Master Print', difficulty: 'Master', size: 6, notes: 31, obstacles: 4, doubles: 6 },
+    { title: 'Atelier Finale', difficulty: 'Master', size: 6, notes: 32, obstacles: 4, doubles: 7 },
+  ]),
+
+  gallery: buildPackLevels('gallery', 6000, [], [
+    { title: 'Blue Plinth', difficulty: 'Tricky', size: 5, notes: 17, obstacles: 2, doubles: 3 },
+    { title: 'White Cube', difficulty: 'Tricky', size: 5, notes: 18, obstacles: 2, doubles: 3 },
+    { title: 'Mondrian IV', difficulty: 'Tricky', size: 5, notes: 19, obstacles: 3, doubles: 3 },
+    { title: 'De Stijl Plane', difficulty: 'Tricky', size: 5, notes: 20, obstacles: 3, doubles: 4 },
+    { title: 'Curator Axis', difficulty: 'Expert', size: 5, notes: 21, obstacles: 3, doubles: 4 },
+    { title: 'Grid Ratio', difficulty: 'Expert', size: 5, notes: 22, obstacles: 3, doubles: 4 },
+    { title: 'Cobalt Frame', difficulty: 'Expert', size: 6, notes: 25, obstacles: 3, doubles: 4 },
+    { title: 'North Alcove', difficulty: 'Expert', size: 6, notes: 26, obstacles: 3, doubles: 5 },
+    { title: 'Kinetic Wall', difficulty: 'Expert', size: 6, notes: 27, obstacles: 4, doubles: 5 },
+    { title: 'Triptych Grid', difficulty: 'Expert', size: 6, notes: 28, obstacles: 4, doubles: 5 },
+    { title: 'Construct IX', difficulty: 'Master', size: 6, notes: 29, obstacles: 4, doubles: 5 },
+    { title: 'Modular Span', difficulty: 'Master', size: 6, notes: 29, obstacles: 4, doubles: 6 },
+    { title: 'Ochre Relief', difficulty: 'Master', size: 6, notes: 30, obstacles: 4, doubles: 6 },
+    { title: 'Salon Prime', difficulty: 'Master', size: 6, notes: 30, obstacles: 4, doubles: 6 },
+    { title: 'Archive Vault', difficulty: 'Master', size: 6, notes: 31, obstacles: 4, doubles: 6 },
+    { title: 'Glass Atrium', difficulty: 'Master', size: 6, notes: 31, obstacles: 4, doubles: 7 },
+    { title: 'Centennial', difficulty: 'Master', size: 6, notes: 32, obstacles: 4, doubles: 7 },
+    { title: 'Grand Gallery', difficulty: 'Master', size: 6, notes: 32, obstacles: 4, doubles: 8 },
   ]),
 };
 
@@ -397,7 +472,7 @@ export function createDailyLevel(dateKey: string = getTodayDateKey()): LevelDef 
 
 /* =========================================================================
    PROGRESSIVE PACK UNLOCK CHAIN:
-   Fridge (unlocked) -> Cork Board -> Drafting -> Midnight
+   Fridge (unlocked) -> Cork Board -> Drafting -> Midnight -> Atelier -> Gallery
    ========================================================================= */
 
 export function getPreviousPackId(packId: ThemeId): ThemeId | null {
