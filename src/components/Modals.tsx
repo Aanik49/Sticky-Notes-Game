@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   AlertTriangle,
   ArrowRight,
+  Award,
   Calendar,
   CheckCircle2,
   Home,
@@ -9,6 +10,7 @@ import {
   Layers,
   Lock,
   Music,
+  Palette,
   Play,
   RotateCcw,
   Sparkles,
@@ -32,8 +34,10 @@ import {
   THEME_ORDER,
   THEMES,
 } from '../game/levels';
-import { LevelDef, MAX_BUMPS, SavedProgress, ThemeId } from '../game/types';
+import { ACHIEVEMENTS, PAPER_STYLES } from '../game/mastery';
+import { LevelDef, MAX_BUMPS, PaperStyleId, SavedProgress, ThemeId } from '../game/types';
 import { GameIcon } from './GameIcon';
+import { BauhausPosterStamp, StudioArchiveTab } from './StudioArchiveModal';
 
 const PACK_GLOW_RGB: Record<ThemeId, string> = {
   fridge: '214, 48, 42',
@@ -379,6 +383,7 @@ interface PauseModalProps {
   onResume: () => void;
   onRestart: () => void;
   onOpenLevels: () => void;
+  onOpenArchive: (tab?: StudioArchiveTab) => void;
   onToggleMute: () => void;
   onToggleMusic: () => void;
   onTitleScreen: () => void;
@@ -391,6 +396,7 @@ export const PauseModal: React.FC<PauseModalProps> = ({
   onResume,
   onRestart,
   onOpenLevels,
+  onOpenArchive,
   onToggleMute,
   onToggleMusic,
   onTitleScreen,
@@ -450,6 +456,15 @@ export const PauseModal: React.FC<PauseModalProps> = ({
               <span>Switch Pack or Wall</span>
             </button>
 
+            <button
+              type="button"
+              onClick={() => onOpenArchive('styles')}
+              className="font-display flex w-full cursor-pointer items-center justify-center gap-2 border-2 border-[#111111] bg-[#e4b43c] py-3 text-sm font-extrabold uppercase shadow-[3px_3px_0_#111111] transition hover:bg-[#ecc252]"
+            >
+              <Award className="h-4 w-4" />
+              <span>Gallery, Mastery & Styles</span>
+            </button>
+
             <div className="mt-1 grid grid-cols-3 gap-2">
               <button
                 type="button"
@@ -502,12 +517,15 @@ interface VictoryModalProps {
   dailyStreak: number;
   dailyMissionCompleted: boolean;
   newlyUnlockedPack: ThemeId | null;
+  newlyUnlockedAchievements?: string[];
+  newlyUnlockedStyles?: PaperStyleId[];
   hasNextLevelInPack: boolean;
   nextPackUnlocked: boolean;
   onReplay: () => void;
   onNext: () => void;
   onHome: () => void;
   onOpenLevels: () => void;
+  onOpenArchive?: (tab?: StudioArchiveTab) => void;
 }
 
 export const VictoryModal: React.FC<VictoryModalProps> = ({
@@ -524,13 +542,19 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   dailyStreak,
   dailyMissionCompleted,
   newlyUnlockedPack,
+  newlyUnlockedAchievements = [],
+  newlyUnlockedStyles = [],
   hasNextLevelInPack,
   nextPackUnlocked,
   onReplay,
   onNext,
   onHome,
   onOpenLevels,
+  onOpenArchive,
 }) => {
+  const unlockedStampDefs = newlyUnlockedAchievements
+    .map((id) => ACHIEVEMENTS.find((a) => a.id === id))
+    .filter((a): a is NonNullable<typeof a> => Boolean(a));
   const headline = level.isDaily
     ? 'Daily Wall Cleared'
     : starsEarned === 3
@@ -658,6 +682,66 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                 </div>
               </div>
             </div>
+          )}
+
+          {/* Newly Unlocked Bauhaus Poster Stamp Callout */}
+          {unlockedStampDefs.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                sound.playClick();
+                onOpenArchive?.('gallery');
+              }}
+              className="mb-2.5 flex w-full cursor-pointer items-center gap-3 border-2 border-[#111111] bg-[#faf6ea] px-3 py-2 text-left shadow-[3px_3px_0_#111111] transition hover:bg-white"
+            >
+              <BauhausPosterStamp
+                motif={unlockedStampDefs[0].motif}
+                unlocked={true}
+                className="h-10 w-10 shrink-0"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="font-mono-num flex items-center gap-1 text-[10px] font-extrabold text-[#d6302a] uppercase">
+                  <Award className="h-3 w-3 shrink-0" />
+                  <span>
+                    Poster Stamp Unlocked
+                    {unlockedStampDefs.length > 1 ? ` (+${unlockedStampDefs.length - 1})` : ''}
+                  </span>
+                </div>
+                <div className="font-display truncate text-sm font-black uppercase">
+                  {unlockedStampDefs[0].title}
+                </div>
+              </div>
+              <span className="font-display shrink-0 text-[10px] font-black uppercase underline">
+                View
+              </span>
+            </button>
+          )}
+
+          {/* Newly Unlocked Paper / Arrow Style Callout */}
+          {newlyUnlockedStyles.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                sound.playClick();
+                onOpenArchive?.('styles');
+              }}
+              className="mb-3 flex w-full cursor-pointer items-center gap-3 border-2 border-[#111111] bg-[#2b56a3] px-3 py-2 text-left text-[#faf6ea] shadow-[3px_3px_0_#111111] transition hover:bg-[#244a8e]"
+            >
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-[#111111] bg-[#e4b43c] text-[#111111]">
+                <Palette className="h-4.5 w-4.5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="font-mono-num text-[10px] font-extrabold text-[#e4b43c] uppercase">
+                  Paper Style Unlocked
+                </div>
+                <div className="font-display truncate text-sm font-black uppercase">
+                  {PAPER_STYLES[newlyUnlockedStyles[0]].name}
+                </div>
+              </div>
+              <span className="font-display shrink-0 text-[10px] font-black uppercase underline">
+                Equip
+              </span>
+            </button>
           )}
 
           {/* Time Attack Highlight Row */}

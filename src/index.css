@@ -205,7 +205,7 @@
   box-shadow: 1px 1px 0 #111111;
 }
 
-/* Authentic Bauhaus Primary & Print Pigments (matches reference image) */
+/* Authentic Bauhaus Primary & Print Pigments (Primary Print - Default) */
 .paper-canary {
   background-color: #e4b43c;
   background-image:
@@ -242,6 +242,163 @@
 .paper-lavender {
   background-color: #1e6b64;
   color: #f5f0e2;
+}
+
+/* STYLE 02: MONO INK (Stark editorial archival monochrome) */
+.style-mono .paper-canary {
+  background-color: #f7f4ec;
+  background-image:
+    linear-gradient(rgba(17, 17, 17, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(17, 17, 17, 0.1) 1px, transparent 1px);
+  background-size: 25% 25%;
+  color: #111111;
+}
+.style-mono .paper-coral {
+  background-color: #1c1c1e;
+  background-image: none;
+  color: #f7f4ec;
+}
+.style-mono .paper-sky {
+  background-color: #4b4d52;
+  background-image: none;
+  color: #f7f4ec;
+}
+.style-mono .paper-mint {
+  background-color: #e3ded1;
+  background-image:
+    repeating-linear-gradient(
+      -45deg,
+      rgba(17, 17, 17, 0.06) 0px,
+      rgba(17, 17, 17, 0.06) 2px,
+      transparent 2px,
+      transparent 7px
+    );
+  color: #111111;
+}
+.style-mono .paper-apricot {
+  background-color: #b8b2a6;
+  background-image: none;
+  color: #111111;
+}
+.style-mono .paper-lavender {
+  background-color: #2f3136;
+  background-image: none;
+  color: #e3ded1;
+}
+
+/* STYLE 03: BLUEPRINT WHITE (Architectural Prussian cyan + white technical grid) */
+.style-blueprint .sticky-note-card {
+  border-color: #0b2240;
+  box-shadow: 2.5px 2.5px 0 #0b2240;
+}
+.style-blueprint .paper-canary {
+  background-color: #184e8c;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.18) 1px, transparent 1px);
+  background-size: 25% 25%;
+  color: #ffffff;
+}
+.style-blueprint .paper-coral {
+  background-color: #0f3666;
+  background-image:
+    linear-gradient(rgba(147, 197, 253, 0.16) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(147, 197, 253, 0.16) 1px, transparent 1px);
+  background-size: 25% 25%;
+  color: #dbeafe;
+}
+.style-blueprint .paper-sky {
+  background-color: #256bb5;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.16) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.16) 1px, transparent 1px);
+  background-size: 25% 25%;
+  color: #ffffff;
+}
+.style-blueprint .paper-mint {
+  background-color: #eaf3fb;
+  background-image:
+    linear-gradient(rgba(24, 78, 140, 0.16) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(24, 78, 140, 0.16) 1px, transparent 1px);
+  background-size: 25% 25%;
+  color: #0b2240;
+}
+.style-blueprint .paper-apricot {
+  background-color: #1d5fa3;
+  background-image: none;
+  color: #ffffff;
+}
+.style-blueprint .paper-lavender {
+  background-color: #11294d;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.13) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.13) 1px, transparent 1px);
+  background-size: 25% 25%;
+  color: #ffffff;
+}
+
+/* STYLE 04: RISOGRAPH POP (Vibrant overprinted screenprint studio inks) */
+.style-risograph .paper-canary {
+  background-color: #f7d53b;
+  background-image: radial-gradient(rgba(29, 98, 216, 0.14) 1px, transparent 0);
+  background-size: 7px 7px;
+  color: #111111;
+}
+.style-risograph .paper-coral {
+  background-color: #e83b6e;
+  background-image: none;
+  color: #faf3e3;
+}
+.style-risograph .paper-sky {
+  background-color: #1d62d8;
+  background-image: none;
+  color: #faf3e3;
+}
+.style-risograph .paper-mint {
+  background-color: #2cb67d;
+  background-image: none;
+  color: #111111;
+}
+.style-risograph .paper-apricot {
+  background-color: #ff6b35;
+  background-image: none;
+  color: #111111;
+}
+.style-risograph .paper-lavender {
+  background-color: #faf3e3;
+  background-image: radial-gradient(rgba(232, 59, 110, 0.16) 1px, transparent 0);
+  background-size: 7px 7px;
+  color: #111111;
+}
+
+/* STYLE 05: GOLD FOIL (Collector obsidian & champagne 24k stamped foil edition) */
+.style-goldfoil .sticky-note-card {
+  border-color: #111111;
+  box-shadow: 3px 3px 0 #111111;
+}
+.style-goldfoil .paper-canary {
+  background: linear-gradient(135deg, #f3d26b 0%, #d9a426 52%, #b98312 100%);
+  color: #111111;
+}
+.style-goldfoil .paper-coral {
+  background: linear-gradient(145deg, #222226 0%, #141416 100%);
+  color: #f5cb5c;
+}
+.style-goldfoil .paper-sky {
+  background: linear-gradient(145deg, #2f3139 0%, #1d1e24 100%);
+  color: #f5cb5c;
+}
+.style-goldfoil .paper-mint {
+  background: linear-gradient(145deg, #fcf8ec 0%, #efe6ce 100%);
+  color: #111111;
+}
+.style-goldfoil .paper-apricot {
+  background: linear-gradient(135deg, #dfb141 0%, #b8861b 55%, #8f630c 100%);
+  color: #faf5e6;
+}
+.style-goldfoil .paper-lavender {
+  background: linear-gradient(145deg, #3c2f1d 0%, #241b10 100%);
+  color: #f5cb5c;
 }
 
 /* Midnight board lifts note edges with sharp obsidian ink drop */

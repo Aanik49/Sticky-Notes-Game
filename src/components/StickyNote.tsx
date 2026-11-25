@@ -1,5 +1,6 @@
 import React from 'react';
-import { ActiveNote, Direction, PaperColor, ThemeMeta } from '../game/types';
+import { PAPER_STYLES } from '../game/mastery';
+import { ActiveNote, Direction, PaperStyleId, ThemeMeta } from '../game/types';
 
 interface StickyNoteProps {
   note: ActiveNote;
@@ -9,6 +10,7 @@ interface StickyNoteProps {
   heightPct: number;
   cols: number;
   theme: ThemeMeta;
+  paperStyle?: PaperStyleId;
   spawnIndex: number;
   animateSpawn: boolean;
   isPeeling?: boolean;
@@ -35,32 +37,75 @@ const DIR_LABEL: Record<Direction, string> = {
   R: 'Right',
 };
 
-const UNDER_BG: Record<PaperColor, string> = {
-  canary: '#e4b43c',
-  coral: '#d6302a',
-  sky: '#2b56a3',
-  mint: '#f3eee0',
-  apricot: '#dc6b2f',
-  lavender: '#1e6b64',
-};
-
-const ARROW_FILL: Record<PaperColor, string> = {
-  canary: '#d6302a',   // Vermilion arrow on Ochre note
-  coral: '#e4b43c',    // Ochre arrow on Vermilion note
-  sky: '#f5f0e2',      // Archival cream arrow on Cobalt note
-  mint: '#2b56a3',     // Cobalt arrow on Archival Cream note
-  apricot: '#f5f0e2',  // Archival cream arrow on Cadmium Orange note
-  lavender: '#e4b43c', // Ochre arrow on Bauhaus Teal note
-};
-
-const CORNER_FOLD_FILL: Record<PaperColor, string> = {
-  canary: '#c99724',
-  coral: '#ad211c',
-  sky: '#1d3f7a',
-  mint: '#dad3c1',
-  apricot: '#b8511b',
-  lavender: '#144e49',
-};
+export const BauhausNoteArrow: React.FC<{
+  dir: Direction;
+  variant: 'block' | 'technical' | 'double' | 'foil';
+  fill: string;
+  stroke: string;
+  className: string;
+}> = ({ dir, variant, fill, stroke, className }) => (
+  <svg
+    aria-hidden="true"
+    viewBox="0 0 36 36"
+    fill="none"
+    style={{ transform: `rotate(${ARROW_ROT[dir]}deg)` }}
+    className={`${className} pointer-events-none transition-transform duration-150`}
+  >
+    {variant === 'technical' ? (
+      <>
+        {/* Blueprint architectural vector arrow with drafting tail crosshair */}
+        <line x1="6" y1="12" x2="6" y2="24" stroke={fill} strokeWidth="2.4" />
+        <line x1="6" y1="18" x2="27" y2="18" stroke={fill} strokeWidth="3.2" />
+        <polygon
+          points="19,9.5 31,18 19,26.5 22,18"
+          fill={fill}
+          stroke={stroke}
+          strokeWidth="1.6"
+          strokeLinejoin="miter"
+        />
+      </>
+    ) : variant === 'double' ? (
+      <>
+        {/* Mono Ink stark double-chevron constructivist arrow */}
+        <path
+          d="M5 14.5H18.5V9L29.5 18L18.5 27V21.5H5V14.5Z"
+          fill={fill}
+          stroke={stroke}
+          strokeWidth="2.2"
+          strokeLinejoin="miter"
+        />
+        <line x1="9.5" y1="18" x2="17" y2="18" stroke={stroke === fill ? '#f7f4ec' : stroke} strokeWidth="2" />
+      </>
+    ) : variant === 'foil' ? (
+      <>
+        {/* Gold Foil faceted museum emblem arrow with inner specular line */}
+        <path
+          d="M5.5 14H19V8L31 18L19 28V22H5.5V14Z"
+          fill={fill}
+          stroke={stroke}
+          strokeWidth="2.3"
+          strokeLinejoin="miter"
+        />
+        <path
+          d="M8 16.5H20.5V12.5L26.8 18"
+          stroke="#ffffff"
+          strokeOpacity="0.45"
+          strokeWidth="1.4"
+          strokeLinejoin="miter"
+        />
+      </>
+    ) : (
+      /* Classic Bauhaus bold black-outlined block arrow */
+      <path
+        d="M6 14.2H19.5V8.5L30.5 18L19.5 27.5V21.8H6V14.2Z"
+        fill={fill}
+        stroke={stroke}
+        strokeWidth="2.4"
+        strokeLinejoin="miter"
+      />
+    )}
+  </svg>
+);
 
 export const StickyNote: React.FC<StickyNoteProps> = ({
   note,
@@ -69,6 +114,7 @@ export const StickyNote: React.FC<StickyNoteProps> = ({
   widthPct,
   heightPct,
   cols,
+  paperStyle = 'primary',
   spawnIndex,
   animateSpawn,
   isPeeling = false,
@@ -80,6 +126,7 @@ export const StickyNote: React.FC<StickyNoteProps> = ({
   isFocused = false,
   onTap,
 }) => {
+  const styleMeta = PAPER_STYLES[paperStyle];
   const arrowSize =
     cols >= 6
       ? 'w-6 h-6 sm:w-8 sm:h-8'
@@ -101,8 +148,9 @@ export const StickyNote: React.FC<StickyNoteProps> = ({
             ? 'note-spawn'
             : '';
 
-  const foldColor = CORNER_FOLD_FILL[note.color];
-  const arrowFill = ARROW_FILL[note.color];
+  const foldColor = styleMeta.foldFill[note.color];
+  const arrowFill = styleMeta.arrowFill[note.color];
+  const arrowStroke = styleMeta.arrowStroke[note.color];
 
   return (
     <div
@@ -119,7 +167,7 @@ export const StickyNote: React.FC<StickyNoteProps> = ({
         <div
           aria-hidden="true"
           style={{
-            backgroundColor: UNDER_BG[note.under.color],
+            backgroundColor: styleMeta.paperHex[note.under.color],
             transform: 'translate(5px, 5px)',
           }}
           className="pointer-events-none absolute inset-0 border-2 border-[#111111]"
@@ -148,8 +196,14 @@ export const StickyNote: React.FC<StickyNoteProps> = ({
           viewBox="0 0 18 18"
           className="pointer-events-none absolute -top-[1px] -right-[1px] h-[22%] w-[22%] max-h-[16px] max-w-[16px] min-h-[10px] min-w-[10px]"
         >
-          <polygon points="0,0 18,0 18,18" fill="#f5f0e2" />
-          <polygon points="0,0 0,18 18,18" fill={foldColor} stroke="#111111" strokeWidth="2.2" strokeLinejoin="miter" />
+          <polygon points="0,0 18,0 18,18" fill={styleMeta.cornerReveal} />
+          <polygon
+            points="0,0 0,18 18,18"
+            fill={foldColor}
+            stroke={arrowStroke}
+            strokeWidth="2.2"
+            strokeLinejoin="miter"
+          />
         </svg>
 
         {/* Bottom-Right Geometric Dog-Ear Corner Fold */}
@@ -158,11 +212,17 @@ export const StickyNote: React.FC<StickyNoteProps> = ({
           viewBox="0 0 18 18"
           className="pointer-events-none absolute -right-[1px] -bottom-[1px] h-[22%] w-[22%] max-h-[16px] max-w-[16px] min-h-[10px] min-w-[10px]"
         >
-          <polygon points="18,0 18,18 0,18" fill="#f5f0e2" />
-          <polygon points="0,0 18,0 0,18" fill={foldColor} stroke="#111111" strokeWidth="2.2" strokeLinejoin="miter" />
+          <polygon points="18,0 18,18 0,18" fill={styleMeta.cornerReveal} />
+          <polygon
+            points="0,0 18,0 0,18"
+            fill={foldColor}
+            stroke={arrowStroke}
+            strokeWidth="2.2"
+            strokeLinejoin="miter"
+          />
         </svg>
 
-        {/* Stacked 2-sheet square ink counter badge (top-left so corner folds stay clean) */}
+        {/* Stacked 2-sheet square ink counter badge */}
         {note.under && (
           <span
             aria-hidden="true"
@@ -172,22 +232,14 @@ export const StickyNote: React.FC<StickyNoteProps> = ({
           </span>
         )}
 
-        {/* Bold Bauhaus Black-Outlined Filled Block Arrow */}
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 36 36"
-          fill="none"
-          style={{ transform: `rotate(${ARROW_ROT[note.dir]}deg)` }}
-          className={`${arrowSize} pointer-events-none transition-transform duration-150`}
-        >
-          <path
-            d="M6 14.2H19.5V8.5L30.5 18L19.5 27.5V21.8H6V14.2Z"
-            fill={arrowFill}
-            stroke="#111111"
-            strokeWidth="2.4"
-            strokeLinejoin="miter"
-          />
-        </svg>
+        {/* Style-Matched Bauhaus Directional Arrow */}
+        <BauhausNoteArrow
+          dir={note.dir}
+          variant={styleMeta.arrowVariant}
+          fill={arrowFill}
+          stroke={arrowStroke}
+          className={arrowSize}
+        />
       </button>
     </div>
   );

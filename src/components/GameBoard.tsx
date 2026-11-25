@@ -1,10 +1,12 @@
 import React from 'react';
+import { PAPER_STYLES } from '../game/mastery';
 import {
   ActiveNote,
   BlockerFeedback,
   Direction,
   HintState,
   ObstacleSpec,
+  PaperStyleId,
   ThemeMeta,
 } from '../game/types';
 import { BoardObstacle } from './BoardObstacle';
@@ -23,6 +25,7 @@ interface GameBoardProps {
   peelingGhosts: PeelingGhost[];
   obstacles: ObstacleSpec[];
   theme: ThemeMeta;
+  paperStyle?: PaperStyleId;
   animateSpawn: boolean;
   levelKey: string;
   blockerFeedback: BlockerFeedback | null;
@@ -38,6 +41,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   peelingGhosts,
   obstacles,
   theme,
+  paperStyle = 'primary',
   animateSpawn,
   levelKey,
   blockerFeedback,
@@ -92,7 +96,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
       {/* Main Responsive Square Bauhaus Grid Board */}
       <div
-        className={`${theme.boardClass} relative aspect-square w-[min(calc(100vw-28px),calc(100dvh-236px),532px)] min-w-[264px] rounded-none transition-colors duration-300`}
+        className={`${theme.boardClass} ${PAPER_STYLES[paperStyle].cssClass} relative aspect-square w-[min(calc(100vw-28px),calc(100dvh-236px),532px)] min-w-[264px] rounded-none transition-colors duration-300`}
       >
         {/* Crisp Architectural Corner Ticks */}
         <span
@@ -187,6 +191,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                 heightPct={cellH}
                 cols={cols}
                 theme={theme}
+                paperStyle={paperStyle}
                 spawnIndex={idx}
                 animateSpawn={animateSpawn}
                 bumpKey={isBumped ? blockerFeedback.timestamp : 0}
@@ -210,6 +215,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
               heightPct={cellH}
               cols={cols}
               theme={theme}
+              paperStyle={paperStyle}
               spawnIndex={0}
               animateSpawn={false}
               isPeeling={true}

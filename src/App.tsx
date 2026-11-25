@@ -23,6 +23,7 @@ import {
 } from './components/Modals';
 import { ParticleCanvas, ParticleCanvasHandle } from './components/ParticleCanvas';
 import { SplashScreen } from './components/SplashScreen';
+import { StudioArchiveModal, StudioArchiveTab } from './components/StudioArchiveModal';
 import { TitleScreen } from './components/TitleScreen';
 import { sound } from './game/audio';
 import {
@@ -35,7 +36,14 @@ import {
   PACK_LEVELS,
   THEMES,
 } from './game/levels';
-import { checkNotePath, findBestHintNote, PAPER_HEX } from './game/solver';
+import {
+  getCurrentlyUnlockedAchievementIds,
+  getTotalEarnedStars,
+  isPaperStyleUnlocked,
+  PAPER_STYLE_ORDER,
+  PAPER_STYLES,
+} from './game/mastery';
+import { checkNotePath, findBestHintNote } from './game/solver';
 import {
   applyDailyCompletion,
   loadProgress,
@@ -51,6 +59,7 @@ import {
   HintState,
   LevelDef,
   MAX_BUMPS,
+  PaperStyleId,
   SavedProgress,
   ThemeId,
   UndoEntry,
@@ -120,6 +129,7 @@ export default function App() {
   const [levelInstanceKey, setLevelInstanceKey] = useState('init-0');
   const [showLevelPicker, setShowLevelPicker] = useState(false);
   const [pickerInitialPack, setPickerInitialPack] = useState<ThemeId | undefined>(undefined);
+  const [archiveTab, setArchiveTab] = useState<StudioArchiveTab | null>(null);
 
   // Combo & timing tracking
   const [combo, setCombo] = useState(0);
@@ -143,6 +153,8 @@ export default function App() {
     maxCombo: number;
     dailyMissionCompleted: boolean;
     newlyUnlockedPack: ThemeId | null;
+    newlyUnlockedAchievements: string[];
+    newlyUnlockedStyles: PaperStyleId[];
   }>({
     stars: 3,
     elapsedSec: 0,
@@ -153,6 +165,8 @@ export default function App() {
     maxCombo: 1,
     dailyMissionCompleted: false,
     newlyUnlockedPack: null,
+    newlyUnlockedAchievements: [],
+    newlyUnlockedStyles: [],
   });
   const [failedElapsedSec, setFailedElapsedSec] = useState(0);
 
@@ -208,7 +222,11 @@ export default function App() {
 
   // Accurate pause-aware stopwatch for Time Attack mode and Daily Time Missions
   const isTimerRunning =
-    screen === 'PLAYING' && !showLevelPicker && boardTransition !== 'out' && !isCelebratingClear;
+    screen === 'PLAYING' &&
+    !showLevelPicker &&
+    archiveTab === null &&
+    boardTransition !== 'out' &&
+    !isCelebratingClear;
   const needsLiveTimerTick =
     progress.timeAttackEnabled ||
     (Boolean(currentLevel.isDaily) && currentLevel.dailyMission?.kind === 'max_time');
@@ -342,6 +360,17 @@ export default function App() {
     setShowLevelPicker(true);
   }, []);
 
+  const handleOpenArchive = useCallback((tab: StudioArchiveTab = 'gallery') => {
+    setArchiveTab(tab);
+  }, []);
+
+  const handleSelectPaperStyle = useCallback((styleId: PaperStyleId) => {
+    setProgress((prev) => ({
+      ...prev,
+      paperStyle: styleId,
+    }));
+  }, []);
+
   const handleStartPack = useCallback(
     (themeId: ThemeId) => {
       if (!isPackUnlocked(themeId, progress.records)) {
@@ -434,6 +463,100 @@ export default function App() {
         }
       }
 
+      // Deterministic post-victory progress builder (updates records, lifetime stats & unlocked achievements)
+      const buildNextProgress = (prev: SavedProgress): SavedProgress => {
+        let base: SavedProgress;
+        const alreadyEarnedDailySeal = Boolean(
+          currentLevel.isDaily &&
+            currentLevel.dailyDateKey &&
+            prev.dailyRecords[currentLevel.dailyDateKey]?.dailyMissionCompleted
+        );
+
+        if (currentLevel.isDaily && currentLevel.dailyDateKey) {
+          base = applyDailyCompletion(
+            prev,
+            currentLevel.dailyDateKey,
+            stars,
+            finalBumps,
+            elapsedSec,
+            recordTimeMs,
+            missionPassedThisRun
+          );
+        } else if (currentLevel.isEndless) {
+          const clearedNum = currentLevel.endlessNumber ?? 1;
+          base = {
+            ...prev,
+            endlessCurrentLevel: Math.max(prev.endlessCurrentLevel, clearedNum + 1),
+            endlessBestStreak: Math.max(prev.endlessBestStreak, clearedNum),
+          };
+        } else {
+          const nextRecords = {
+            ...prev.records,
+            [currentLevel.id]: mergeLevelRecord(
+              prev.records[currentLevel.id],
+              stars,
+              finalBumps,
+              elapsedSec,
+              recordTimeMs
+            ),
+          };
+          const nextNewlyUnlocked =
+            newlyUnlockedPack && !prev.newlyUnlockedPacks.includes(newlyUnlockedPack)
+              ? [...prev.newlyUnlockedPacks, newlyUnlockedPack]
+              : prev.newlyUnlockedPacks;
+
+          base = {
+            ...prev,
+            records: nextRecords,
+            newlyUnlockedPacks: nextNewlyUnlocked,
+          };
+        }
+
+        const nextPackClearsCount = { ...base.stats.packClearsCount };
+        nextPackClearsCount[currentLevel.packId] =
+          (nextPackClearsCount[currentLevel.packId] ?? 0) + 1;
+
+        const withStats: SavedProgress = {
+          ...base,
+          stats: {
+            totalSheetsPeeled: base.stats.totalSheetsPeeled + 1,
+            totalWallsCleared: base.stats.totalWallsCleared + 1,
+            spotlessClears: base.stats.spotlessClears + (finalBumps === 0 ? 1 : 0),
+            longestCleanStreak: Math.max(base.stats.longestCleanStreak, finalMaxCombo),
+            dailyMissionsCompleted:
+              base.stats.dailyMissionsCompleted +
+              (missionPassedThisRun && !alreadyEarnedDailySeal ? 1 : 0),
+            packClearsCount: nextPackClearsCount,
+          },
+        };
+
+        const mergedUnlocked = Array.from(
+          new Set([
+            ...withStats.unlockedAchievements,
+            ...getCurrentlyUnlockedAchievementIds(withStats),
+          ])
+        );
+
+        return {
+          ...withStats,
+          unlockedAchievements: mergedUnlocked,
+        };
+      };
+
+      const predictedNext = buildNextProgress(progress);
+      const prevTotalStars = getTotalEarnedStars(progress);
+      const nextTotalStars = getTotalEarnedStars(predictedNext);
+      const prevUnlockedSet = new Set([
+        ...progress.unlockedAchievements,
+        ...getCurrentlyUnlockedAchievementIds(progress),
+      ]);
+      const newlyUnlockedAchievements = predictedNext.unlockedAchievements.filter(
+        (id) => !prevUnlockedSet.has(id)
+      );
+      const newlyUnlockedStyles = PAPER_STYLE_ORDER.filter(
+        (id) => !isPaperStyleUnlocked(id, prevTotalStars) && isPaperStyleUnlocked(id, nextTotalStars)
+      );
+
       setVictoryStats({
         stars,
         elapsedSec,
@@ -444,6 +567,8 @@ export default function App() {
         maxCombo: finalMaxCombo,
         dailyMissionCompleted,
         newlyUnlockedPack,
+        newlyUnlockedAchievements,
+        newlyUnlockedStyles,
       });
 
       setIsCelebratingClear(true);
@@ -464,63 +589,14 @@ export default function App() {
         particleRef.current?.emitVictory(window.innerWidth, window.innerHeight);
       }
 
-      setProgress((prev) => {
-        if (currentLevel.isDaily && currentLevel.dailyDateKey) {
-          return applyDailyCompletion(
-            prev,
-            currentLevel.dailyDateKey,
-            stars,
-            finalBumps,
-            elapsedSec,
-            recordTimeMs,
-            missionPassedThisRun
-          );
-        }
-        if (currentLevel.isEndless) {
-          const clearedNum = currentLevel.endlessNumber ?? 1;
-          return {
-            ...prev,
-            endlessCurrentLevel: Math.max(prev.endlessCurrentLevel, clearedNum + 1),
-            endlessBestStreak: Math.max(prev.endlessBestStreak, clearedNum),
-          };
-        }
-
-        const nextRecords = {
-          ...prev.records,
-          [currentLevel.id]: mergeLevelRecord(
-            prev.records[currentLevel.id],
-            stars,
-            finalBumps,
-            elapsedSec,
-            recordTimeMs
-          ),
-        };
-        const nextNewlyUnlocked =
-          newlyUnlockedPack && !prev.newlyUnlockedPacks.includes(newlyUnlockedPack)
-            ? [...prev.newlyUnlockedPacks, newlyUnlockedPack]
-            : prev.newlyUnlockedPacks;
-
-        return {
-          ...prev,
-          records: nextRecords,
-          newlyUnlockedPacks: nextNewlyUnlocked,
-        };
-      });
+      setProgress((prev) => buildNextProgress(prev));
 
       endModalTimerRef.current = window.setTimeout(() => {
         setIsCelebratingClear(false);
         setScreen('VICTORY');
       }, 860);
     },
-    [
-      currentLevel,
-      getCurrentElapsedMs,
-      hintsUsed,
-      initialTotalSheets,
-      progress.dailyRecords,
-      progress.records,
-      progress.timeAttackEnabled,
-    ]
+    [currentLevel, getCurrentElapsedMs, hintsUsed, initialTotalSheets, progress]
   );
 
   const handleTapNote = useCallback(
@@ -538,6 +614,7 @@ export default function App() {
       const rect = el?.getBoundingClientRect();
       const cx = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
       const cy = rect ? rect.top + rect.height / 2 : window.innerHeight / 2;
+      const activeStyle = PAPER_STYLES[progress.paperStyle] ?? PAPER_STYLES.primary;
 
       if (check.clear) {
         const now = Date.now();
@@ -555,7 +632,7 @@ export default function App() {
         comboClearTimerRef.current = window.setTimeout(() => setCombo(0), 1550);
 
         sound.playPeel(nextCombo, currentLevel.packId, Boolean(note.under));
-        particleRef.current?.emitPeel(cx, cy, note.dir, PAPER_HEX[note.color]);
+        particleRef.current?.emitPeel(cx, cy, note.dir, activeStyle.paperHex[note.color]);
 
         const ghostKey = `ghost-${note.id}-${now}-${Math.random().toString(36).slice(2, 6)}`;
         const peeledVisualNote: ActiveNote = {
@@ -598,12 +675,21 @@ export default function App() {
 
         if (nextNotes.length === 0) {
           triggerVictory(bumps, nextMaxCombo, { x: cx, y: cy });
+        } else {
+          setProgress((prev) => ({
+            ...prev,
+            stats: {
+              ...prev.stats,
+              totalSheetsPeeled: prev.stats.totalSheetsPeeled + 1,
+              longestCleanStreak: Math.max(prev.stats.longestCleanStreak, nextCombo),
+            },
+          }));
         }
       } else {
         // Blocked collision!
         const nextBumps = bumps + 1;
         sound.playBump(currentLevel.packId);
-        particleRef.current?.emitBump(cx, cy, PAPER_HEX[note.color]);
+        particleRef.current?.emitBump(cx, cy, activeStyle.paperHex[note.color]);
         setCombo(0);
         setBumps(nextBumps);
         setAnimateSpawn(false);
@@ -639,7 +725,18 @@ export default function App() {
         }
       }
     },
-    [bumps, combo, currentLevel, isCelebratingClear, maxCombo, notes, obstacles, screen, triggerVictory]
+    [
+      bumps,
+      combo,
+      currentLevel,
+      isCelebratingClear,
+      maxCombo,
+      notes,
+      obstacles,
+      progress.paperStyle,
+      screen,
+      triggerVictory,
+    ]
   );
 
   const handleUndo = useCallback(() => {
@@ -651,6 +748,14 @@ export default function App() {
     setCombo(0);
     setAnimateSpawn(false);
     sound.playUndo();
+
+    setProgress((prev) => ({
+      ...prev,
+      stats: {
+        ...prev.stats,
+        totalSheetsPeeled: Math.max(0, prev.stats.totalSheetsPeeled - 1),
+      },
+    }));
 
     setNotes((prev) => {
       if (last.wasStackedTop) {
@@ -772,6 +877,14 @@ export default function App() {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
 
+      if (archiveTab !== null) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          setArchiveTab(null);
+        }
+        return;
+      }
+
       if (showLevelPicker) {
         if (e.key === 'Escape') {
           e.preventDefault();
@@ -865,6 +978,7 @@ export default function App() {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [
+    archiveTab,
     currentLevel.cols,
     currentLevel.rows,
     focusedCell,
@@ -956,6 +1070,7 @@ export default function App() {
           onSelectTheme={setSelectedTheme}
           onStartPack={handleStartPack}
           onOpenLevels={handleOpenLevelPicker}
+          onOpenArchive={handleOpenArchive}
           onStartDaily={handleStartDaily}
           onStartEndless={() => handleStartEndless()}
           onToggleMute={handleToggleMute}
@@ -1246,6 +1361,7 @@ export default function App() {
                 peelingGhosts={peelingGhosts}
                 obstacles={obstacles}
                 theme={activeTheme}
+                paperStyle={progress.paperStyle}
                 animateSpawn={animateSpawn}
                 levelKey={levelInstanceKey}
                 blockerFeedback={blockerFeedback}
@@ -1311,7 +1427,16 @@ export default function App() {
       )}
 
       {/* MODALS */}
-      {showLevelPicker && (
+      {archiveTab !== null && (
+        <StudioArchiveModal
+          progress={progress}
+          initialTab={archiveTab}
+          onSelectPaperStyle={handleSelectPaperStyle}
+          onClose={() => setArchiveTab(null)}
+        />
+      )}
+
+      {showLevelPicker && archiveTab === null && (
         <LevelPickerModal
           currentLevel={currentLevel}
           initialPack={pickerInitialPack}
@@ -1326,7 +1451,7 @@ export default function App() {
         />
       )}
 
-      {screen === 'PAUSED' && !showLevelPicker && (
+      {screen === 'PAUSED' && !showLevelPicker && archiveTab === null && (
         <PauseModal
           level={currentLevel}
           muted={progress.muted}
@@ -1341,13 +1466,17 @@ export default function App() {
             setScreen('PLAYING');
             handleOpenLevelPicker(currentLevel.packId);
           }}
+          onOpenArchive={(tab) => {
+            sound.playClick();
+            handleOpenArchive(tab);
+          }}
           onToggleMute={handleToggleMute}
           onToggleMusic={handleToggleMusic}
           onTitleScreen={handleGoHome}
         />
       )}
 
-      {screen === 'VICTORY' && !showLevelPicker && (
+      {screen === 'VICTORY' && !showLevelPicker && archiveTab === null && (
         <VictoryModal
           level={currentLevel}
           starsEarned={victoryStats.stars}
@@ -1362,6 +1491,8 @@ export default function App() {
           dailyStreak={progress.dailyStreak}
           dailyMissionCompleted={victoryStats.dailyMissionCompleted}
           newlyUnlockedPack={victoryStats.newlyUnlockedPack}
+          newlyUnlockedAchievements={victoryStats.newlyUnlockedAchievements}
+          newlyUnlockedStyles={victoryStats.newlyUnlockedStyles}
           hasNextLevelInPack={hasNextInPack}
           nextPackUnlocked={nextPackUnlocked}
           onReplay={handleRestart}
@@ -1373,10 +1504,11 @@ export default function App() {
               victoryStats.newlyUnlockedPack ?? currentLevel.packId
             );
           }}
+          onOpenArchive={(tab) => handleOpenArchive(tab)}
         />
       )}
 
-      {screen === 'FAILED' && !showLevelPicker && (
+      {screen === 'FAILED' && !showLevelPicker && archiveTab === null && (
         <FailedModal
           level={currentLevel}
           sheetsRemaining={sheetsRemaining}

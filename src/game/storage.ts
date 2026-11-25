@@ -1,6 +1,38 @@
-import { LevelRecord, SavedProgress, ThemeId } from './types';
+import {
+  LevelRecord,
+  LifetimeStats,
+  PaperStyleId,
+  SavedProgress,
+  ThemeId,
+} from './types';
 
 const STORAGE_KEY = 'sticky_notes_puzzle_save_v1';
+
+const VALID_PAPER_STYLES: PaperStyleId[] = [
+  'primary',
+  'mono',
+  'blueprint',
+  'risograph',
+  'goldfoil',
+];
+
+const DEFAULT_PACK_CLEARS: Record<ThemeId, number> = {
+  fridge: 0,
+  cork: 0,
+  drafting: 0,
+  midnight: 0,
+  atelier: 0,
+  gallery: 0,
+};
+
+const DEFAULT_STATS: LifetimeStats = {
+  totalSheetsPeeled: 0,
+  totalWallsCleared: 0,
+  spotlessClears: 0,
+  longestCleanStreak: 0,
+  dailyMissionsCompleted: 0,
+  packClearsCount: { ...DEFAULT_PACK_CLEARS },
+};
 
 const DEFAULT_PROGRESS: SavedProgress = {
   records: {},
@@ -11,33 +43,97 @@ const DEFAULT_PROGRESS: SavedProgress = {
   musicMuted: false,
   timeAttackEnabled: false,
   lastTheme: 'fridge',
+  paperStyle: 'primary',
   endlessBestStreak: 0,
   endlessCurrentLevel: 1,
   newlyUnlockedPacks: [],
+  stats: { ...DEFAULT_STATS, packClearsCount: { ...DEFAULT_PACK_CLEARS } },
+  unlockedAchievements: [],
 };
+
+function sanitizeStats(
+  raw: Partial<LifetimeStats> | undefined,
+  records: Record<string, LevelRecord>,
+  dailyRecords: Record<string, LevelRecord>
+): LifetimeStats {
+  const packClears: Record<ThemeId, number> = {
+    fridge: raw?.packClearsCount?.fridge ?? 0,
+    cork: raw?.packClearsCount?.cork ?? 0,
+    drafting: raw?.packClearsCount?.drafting ?? 0,
+    midnight: raw?.packClearsCount?.midnight ?? 0,
+    atelier: raw?.packClearsCount?.atelier ?? 0,
+    gallery: raw?.packClearsCount?.gallery ?? 0,
+  };
+
+  // Backfill from existing records when upgrading from earlier saves
+  const recEntries = Object.entries(records);
+  const dailyVals = Object.values(dailyRecords);
+  if (!raw) {
+    for (const [id] of recEntries) {
+      const prefix = id.split('-')[0] as ThemeId;
+      if (prefix in packClears) {
+        packClears[prefix] += 1;
+      }
+    }
+  }
+
+  const inferredCleared = recEntries.length + dailyVals.length;
+  const inferredSpotless =
+    recEntries.filter(([, r]) => r.stars === 3).length +
+    dailyVals.filter((r) => r.stars === 3).length;
+  const inferredDailyMissions = dailyVals.filter((r) => r.dailyMissionCompleted).length;
+
+  return {
+    totalSheetsPeeled: Math.max(0, raw?.totalSheetsPeeled ?? inferredCleared * 14),
+    totalWallsCleared: Math.max(inferredCleared, raw?.totalWallsCleared ?? 0),
+    spotlessClears: Math.max(inferredSpotless, raw?.spotlessClears ?? 0),
+    longestCleanStreak: Math.max(0, raw?.longestCleanStreak ?? 0),
+    dailyMissionsCompleted: Math.max(inferredDailyMissions, raw?.dailyMissionsCompleted ?? 0),
+    packClearsCount: packClears,
+  };
+}
 
 export function loadProgress(): SavedProgress {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { ...DEFAULT_PROGRESS };
+    if (!raw) {
+      return {
+        ...DEFAULT_PROGRESS,
+        stats: { ...DEFAULT_STATS, packClearsCount: { ...DEFAULT_PACK_CLEARS } },
+      };
+    }
     const parsed = JSON.parse(raw) as Partial<SavedProgress>;
+    const records = parsed.records ?? {};
+    const dailyRecords = parsed.dailyRecords ?? {};
+    const candidateStyle = parsed.paperStyle as PaperStyleId | undefined;
+    const paperStyle: PaperStyleId =
+      candidateStyle && VALID_PAPER_STYLES.includes(candidateStyle) ? candidateStyle : 'primary';
+
     return {
-      records: parsed.records ?? {},
-      dailyRecords: parsed.dailyRecords ?? {},
+      records,
+      dailyRecords,
       dailyStreak: parsed.dailyStreak ?? 0,
       lastDailyCompletedDate: parsed.lastDailyCompletedDate ?? null,
       muted: Boolean(parsed.muted),
       musicMuted: Boolean(parsed.musicMuted),
       timeAttackEnabled: Boolean(parsed.timeAttackEnabled),
       lastTheme: (parsed.lastTheme as ThemeId) ?? 'fridge',
+      paperStyle,
       endlessBestStreak: parsed.endlessBestStreak ?? 0,
       endlessCurrentLevel: Math.max(1, parsed.endlessCurrentLevel ?? 1),
       newlyUnlockedPacks: Array.isArray(parsed.newlyUnlockedPacks)
         ? (parsed.newlyUnlockedPacks as ThemeId[])
         : [],
+      stats: sanitizeStats(parsed.stats, records, dailyRecords),
+      unlockedAchievements: Array.isArray(parsed.unlockedAchievements)
+        ? parsed.unlockedAchievements.filter((id): id is string => typeof id === 'string')
+        : [],
     };
   } catch {
-    return { ...DEFAULT_PROGRESS };
+    return {
+      ...DEFAULT_PROGRESS,
+      stats: { ...DEFAULT_STATS, packClearsCount: { ...DEFAULT_PACK_CLEARS } },
+    };
   }
 }
 

@@ -2,6 +2,8 @@ export type Direction = 'U' | 'D' | 'L' | 'R';
 
 export type PaperColor = 'canary' | 'coral' | 'sky' | 'mint' | 'apricot' | 'lavender';
 
+export type PaperStyleId = 'primary' | 'mono' | 'blueprint' | 'risograph' | 'goldfoil';
+
 export type ThemeId = 'fridge' | 'cork' | 'drafting' | 'midnight' | 'atelier' | 'gallery';
 
 export type GameScreen = 'TITLE_MENU' | 'PLAYING' | 'PAUSED' | 'VICTORY' | 'FAILED';
@@ -114,6 +116,15 @@ export interface LevelRecord {
   dailyMissionCompleted?: boolean;
 }
 
+export interface LifetimeStats {
+  totalSheetsPeeled: number;
+  totalWallsCleared: number;
+  spotlessClears: number;
+  longestCleanStreak: number;
+  dailyMissionsCompleted: number;
+  packClearsCount: Record<ThemeId, number>;
+}
+
 export interface SavedProgress {
   records: Record<string, LevelRecord>;
   dailyRecords: Record<string, LevelRecord>;
@@ -123,9 +134,12 @@ export interface SavedProgress {
   musicMuted: boolean;
   timeAttackEnabled: boolean;
   lastTheme: ThemeId;
+  paperStyle: PaperStyleId;
   endlessBestStreak: number;
   endlessCurrentLevel: number;
   newlyUnlockedPacks: ThemeId[];
+  stats: LifetimeStats;
+  unlockedAchievements: string[];
 }
 
 export interface ParticleBurstRequest {

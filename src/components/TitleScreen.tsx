@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  Award,
   Calendar,
   CheckCircle2,
   Infinity as InfinityIcon,
@@ -24,10 +25,13 @@ import {
   THEME_ORDER,
   THEMES,
 } from '../game/levels';
-import { checkNotePath, PAPER_HEX } from '../game/solver';
-import { ActiveNote, Direction, PaperColor, SavedProgress, ThemeId } from '../game/types';
+import { PAPER_STYLES } from '../game/mastery';
+import { checkNotePath } from '../game/solver';
+import { ActiveNote, Direction, SavedProgress, ThemeId } from '../game/types';
 import { GameIcon } from './GameIcon';
 import { DailyRewardIcon } from './Modals';
+import { BauhausNoteArrow } from './StickyNote';
+import { StudioArchiveTab } from './StudioArchiveModal';
 
 interface TitleScreenProps {
   selectedTheme: ThemeId;
@@ -37,6 +41,7 @@ interface TitleScreenProps {
   onSelectTheme: (theme: ThemeId) => void;
   onStartPack: (theme: ThemeId) => void;
   onOpenLevels: (packId?: ThemeId) => void;
+  onOpenArchive: (tab?: StudioArchiveTab) => void;
   onStartDaily: () => void;
   onStartEndless: () => void;
   onToggleMute: () => void;
@@ -56,25 +61,6 @@ const DEMO_WALL: Omit<ActiveNote, 'id'>[] = [
   { r: 2, c: 2, dir: 'D', color: 'canary', tilt: 0 },
 ];
 
-const ARROW_ROT: Record<Direction, number> = { R: 0, D: 90, L: 180, U: -90 };
-
-const DEMO_ARROW_FILL: Record<PaperColor, string> = {
-  canary: '#d6302a',
-  coral: '#e4b43c',
-  sky: '#f5f0e2',
-  mint: '#2b56a3',
-  apricot: '#f5f0e2',
-  lavender: '#e4b43c',
-};
-
-const DEMO_FOLD_FILL: Record<PaperColor, string> = {
-  canary: '#c99724',
-  coral: '#ad211c',
-  sky: '#1d3f7a',
-  mint: '#dad3c1',
-  apricot: '#b8511b',
-  lavender: '#144e49',
-};
 
 const PACK_GLOW_RGB: Record<ThemeId, string> = {
   fridge: '214, 48, 42',
@@ -117,6 +103,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   onSelectTheme,
   onStartPack,
   onOpenLevels,
+  onOpenArchive,
   onStartDaily,
   onStartEndless,
   onToggleMute,
@@ -124,6 +111,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   onParticlePeel,
 }) => {
   const theme = THEMES[selectedTheme];
+  const activeStyle = PAPER_STYLES[progress.paperStyle] ?? PAPER_STYLES.primary;
   const todayKey = getTodayDateKey();
   const todayLabel = formatDailyDateLabel(todayKey);
   const todayMission = getDailyMission(todayKey);
@@ -171,7 +159,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           rect.left + rect.width / 2,
           rect.top + rect.height / 2,
           note.dir,
-          PAPER_HEX[note.color]
+          activeStyle.paperHex[note.color]
         );
       }
       setPeelingIds((prev) => ({ ...prev, [note.id]: note.dir }));
@@ -225,6 +213,19 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              sound.playClick();
+              onOpenArchive('gallery');
+            }}
+            aria-label="Open Studio Archive: Gallery, Mastery, and Paper Styles"
+            title="Gallery, Mastery & Styles"
+            className={headerBtnClass}
+          >
+            <Award className="h-5 w-5" />
+          </button>
+
           <button
             type="button"
             onClick={() => {
@@ -536,7 +537,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
         <div className="hidden items-stretch gap-3 sm:flex">
           <div className="flex flex-col items-center">
             <div
-              className={`${theme.boardClass} relative aspect-square w-[250px] p-4 transition-all duration-500 lg:w-[328px] lg:p-5`}
+              className={`${theme.boardClass} ${activeStyle.cssClass} relative aspect-square w-[250px] p-4 transition-all duration-500 lg:w-[328px] lg:p-5`}
             >
               <div className="relative h-full w-full">
                 {demoNotes.map((note, i) => {
@@ -572,10 +573,10 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
                         viewBox="0 0 18 18"
                         className="pointer-events-none absolute -top-[1px] -right-[1px] h-[22%] w-[22%]"
                       >
-                        <polygon points="0,0 18,0 18,18" fill="#f5f0e2" />
+                        <polygon points="0,0 18,0 18,18" fill={activeStyle.cornerReveal} />
                         <polygon
                           points="0,0 0,18 18,18"
-                          fill={DEMO_FOLD_FILL[note.color]}
+                          fill={activeStyle.foldFill[note.color]}
                           stroke="#111111"
                           strokeWidth="2.2"
                         />
@@ -585,29 +586,22 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
                         viewBox="0 0 18 18"
                         className="pointer-events-none absolute -right-[1px] -bottom-[1px] h-[22%] w-[22%]"
                       >
-                        <polygon points="18,0 18,18 0,18" fill="#f5f0e2" />
+                        <polygon points="18,0 18,18 0,18" fill={activeStyle.cornerReveal} />
                         <polygon
                           points="0,0 18,0 0,18"
-                          fill={DEMO_FOLD_FILL[note.color]}
+                          fill={activeStyle.foldFill[note.color]}
                           stroke="#111111"
                           strokeWidth="2.2"
                         />
                       </svg>
 
-                      <svg
-                        viewBox="0 0 36 36"
-                        fill="none"
-                        style={{ transform: `rotate(${ARROW_ROT[note.dir]}deg)` }}
+                      <BauhausNoteArrow
+                        dir={note.dir}
+                        variant={activeStyle.arrowVariant}
+                        fill={activeStyle.arrowFill[note.color]}
+                        stroke={activeStyle.arrowStroke[note.color]}
                         className="h-9 w-9 lg:h-11 lg:w-11"
-                      >
-                        <path
-                          d="M6 14.2H19.5V8.5L30.5 18L19.5 27.5V21.8H6V14.2Z"
-                          fill={DEMO_ARROW_FILL[note.color]}
-                          stroke="#111111"
-                          strokeWidth="2.4"
-                          strokeLinejoin="miter"
-                        />
-                      </svg>
+                      />
                     </button>
                   );
                 })}
@@ -621,7 +615,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             </div>
 
             <p className="font-mono-num mt-3 text-[11px] font-bold tracking-wide uppercase opacity-80">
-              Try tapping a note · {theme.surfaceLabel}
+              Try tapping a note · {activeStyle.name}
             </p>
           </div>
 
