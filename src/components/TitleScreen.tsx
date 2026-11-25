@@ -3,6 +3,7 @@ import {
   Award,
   Calendar,
   CheckCircle2,
+  FlaskConical,
   Infinity as InfinityIcon,
   Layers,
   Lock,
@@ -19,25 +20,36 @@ import {
   getDailyMission,
   getPackClearedCount,
   getPackUnlockRequirement,
+  getThemesForMode,
   getTodayDateKey,
   isPackUnlocked,
+  isProgressionPack,
   PACK_LEVELS,
   THEME_ORDER,
   THEMES,
 } from '../game/levels';
 import { PAPER_STYLES } from '../game/mastery';
-import { checkNotePath } from '../game/solver';
-import { ActiveNote, Direction, SavedProgress, ThemeId } from '../game/types';
+import { evaluateNoteTap, isNoteTapedLocked, TAPE_COLOR_META } from '../game/solver';
+import {
+  ActiveNote,
+  ClassicThemeId,
+  Direction,
+  GameMode,
+  SavedProgress,
+  ThemeId,
+} from '../game/types';
 import { GameIcon } from './GameIcon';
 import { DailyRewardIcon } from './Modals';
 import { BauhausNoteArrow } from './StickyNote';
 import { StudioArchiveTab } from './StudioArchiveModal';
 
 interface TitleScreenProps {
+  selectedMode: GameMode;
   selectedTheme: ThemeId;
   progress: SavedProgress;
   muted: boolean;
   musicMuted: boolean;
+  onSelectMode: (mode: GameMode) => void;
   onSelectTheme: (theme: ThemeId) => void;
   onStartPack: (theme: ThemeId) => void;
   onOpenLevels: (packId?: ThemeId) => void;
@@ -49,7 +61,7 @@ interface TitleScreenProps {
   onParticlePeel: (x: number, y: number, dir: Direction, colorHex: string) => void;
 }
 
-const DEMO_WALL: Omit<ActiveNote, 'id'>[] = [
+const CLASSIC_DEMO_WALL: Omit<ActiveNote, 'id'>[] = [
   { r: 0, c: 0, dir: 'U', color: 'canary', tilt: 0 },
   { r: 0, c: 1, dir: 'R', color: 'coral', tilt: 0 },
   { r: 0, c: 2, dir: 'R', color: 'sky', tilt: 0 },
@@ -61,8 +73,18 @@ const DEMO_WALL: Omit<ActiveNote, 'id'>[] = [
   { r: 2, c: 2, dir: 'D', color: 'canary', tilt: 0 },
 ];
 
+/** Live interactive 3x3 Studio Lab preview featuring all 3 new mechanics (Key+Tape, Pivot, Chain-Peel) */
+const LAB_DEMO_WALL: Omit<ActiveNote, 'id'>[] = [
+  { r: 0, c: 0, dir: 'L', color: 'coral', tilt: 0, keyColor: 'red' },
+  { r: 0, c: 2, dir: 'U', color: 'canary', tilt: 0, linkId: 'A' },
+  { r: 1, c: 1, dir: 'D', color: 'sky', tilt: 0, pivot: true },
+  { r: 1, c: 2, dir: 'R', color: 'mint', tilt: 0 },
+  { r: 2, c: 0, dir: 'L', color: 'canary', tilt: 0, linkId: 'A' },
+  { r: 2, c: 1, dir: 'U', color: 'sky', tilt: 0, tapeColor: 'red' },
+  { r: 2, c: 2, dir: 'D', color: 'coral', tilt: 0 },
+];
 
-const PACK_GLOW_RGB: Record<ThemeId, string> = {
+const PACK_GLOW_RGB: Record<ClassicThemeId, string> = {
   fridge: '214, 48, 42',
   cork: '228, 180, 60',
   drafting: '45, 212, 191',
@@ -71,7 +93,7 @@ const PACK_GLOW_RGB: Record<ThemeId, string> = {
   gallery: '96, 165, 250',
 };
 
-const PACK_SWATCH_BG: Record<ThemeId, string> = {
+const PACK_SWATCH_BG: Record<ClassicThemeId, string> = {
   fridge: '#f5f0e2',
   cork: '#e4b43c',
   drafting: '#1e6b64',
@@ -80,7 +102,7 @@ const PACK_SWATCH_BG: Record<ThemeId, string> = {
   gallery: '#2b56a3',
 };
 
-const PLAY_BUTTON_THEME: Record<ThemeId, string> = {
+const PLAY_BUTTON_THEME: Record<ClassicThemeId, string> = {
   fridge: 'bg-[#d6302a] text-[#faf6ea] hover:bg-[#c02621]',
   cork: 'bg-[#111111] text-[#e4b43c] hover:bg-[#222222]',
   drafting: 'bg-[#e4b43c] text-[#111111] hover:bg-[#ecc252]',
@@ -95,11 +117,18 @@ const LOBBY_FOOTER_TIPS = [
   'Clear Blocking notes first to uncover the entire Wall',
 ] as const;
 
+function buildDemoNotes(mode: GameMode): ActiveNote[] {
+  const src = mode === 'lab' ? LAB_DEMO_WALL : CLASSIC_DEMO_WALL;
+  return src.map((n, i) => ({ ...n, id: `demo-${mode}-${Date.now()}-${i}` }));
+}
+
 export const TitleScreen: React.FC<TitleScreenProps> = ({
+  selectedMode,
   selectedTheme,
   progress,
   muted,
   musicMuted,
+  onSelectMode,
   onSelectTheme,
   onStartPack,
   onOpenLevels,
@@ -111,6 +140,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   onParticlePeel,
 }) => {
   const theme = THEMES[selectedTheme];
+  const visiblePackIds = getThemesForMode(selectedMode);
   const activeStyle = PAPER_STYLES[progress.paperStyle] ?? PAPER_STYLES.primary;
   const todayKey = getTodayDateKey();
   const todayLabel = formatDailyDateLabel(todayKey);
@@ -119,13 +149,19 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   const selectedUnlocked = isPackUnlocked(selectedTheme, progress.records);
   const selectedRequirement = getPackUnlockRequirement(selectedTheme, progress.records);
 
-  const [demoNotes, setDemoNotes] = useState<ActiveNote[]>(() =>
-    DEMO_WALL.map((n, i) => ({ ...n, id: `demo-${i}` }))
-  );
+  const [demoNotes, setDemoNotes] = useState<ActiveNote[]>(() => buildDemoNotes(selectedMode));
   const [peelingIds, setPeelingIds] = useState<Record<string, Direction>>({});
   const [bumpedId, setBumpedId] = useState<{ id: string; dir: Direction; ts: number } | null>(null);
   const [demoResetting, setDemoResetting] = useState(false);
   const [footerTipIndex, setFooterTipIndex] = useState(0);
+
+  // Switch demo wall immediately when toggling Classic <-> Studio Lab
+  useEffect(() => {
+    setDemoNotes(buildDemoNotes(selectedMode));
+    setPeelingIds({});
+    setBumpedId(null);
+    setDemoResetting(false);
+  }, [selectedMode]);
 
   // Cycle bottom single-line instruction tips continuously every 2 seconds
   useEffect(() => {
@@ -140,19 +176,22 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
     if (demoNotes.length === 0) {
       setDemoResetting(true);
       const t = window.setTimeout(() => {
-        setDemoNotes(DEMO_WALL.map((n, i) => ({ ...n, id: `demo-${Date.now()}-${i}` })));
+        setDemoNotes(buildDemoNotes(selectedMode));
         setPeelingIds({});
         setDemoResetting(false);
       }, 650);
       return () => window.clearTimeout(t);
     }
-  }, [demoNotes.length]);
+  }, [demoNotes.length, selectedMode]);
 
   const handleDemoTap = (note: ActiveNote, el: HTMLButtonElement | null) => {
     if (peelingIds[note.id]) return;
-    const res = checkNotePath(note, demoNotes, [], 3, 3);
-    if (res.clear) {
-      sound.playPeel(1, selectedTheme);
+    const ev = evaluateNoteTap(note, demoNotes, [], 3, 3);
+    if (ev.canPeel) {
+      sound.playPeel(ev.peeledNotes.length, selectedTheme);
+      if (ev.unlockedTapeColors.length > 0) sound.playUnlockTape();
+      if (ev.rotatedPivotCount > 0) sound.playPivotTick();
+
       if (el) {
         const rect = el.getBoundingClientRect();
         onParticlePeel(
@@ -162,13 +201,19 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           activeStyle.paperHex[note.color]
         );
       }
-      setPeelingIds((prev) => ({ ...prev, [note.id]: note.dir }));
+
+      const nextPeeling: Record<string, Direction> = {};
+      for (const p of ev.peeledNotes) {
+        nextPeeling[p.id] = p.dir;
+      }
+      setPeelingIds((prev) => ({ ...prev, ...nextPeeling }));
+
       window.setTimeout(() => {
-        setDemoNotes((prev) => prev.filter((n) => n.id !== note.id));
-      }, 340);
+        setDemoNotes(ev.nextNotes);
+      }, 300);
     } else {
       sound.playBump(selectedTheme);
-      setBumpedId({ id: note.id, dir: note.dir, ts: Date.now() });
+      setBumpedId({ id: ev.blameNote.id, dir: ev.blameNote.dir, ts: Date.now() });
     }
   };
 
@@ -184,11 +229,23 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   const headerBtnClass =
     'flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center border-2 border-[#111111] bg-[#f5f0e2] text-[#111111] shadow-[2px_2px_0_#111111] transition hover:-translate-y-0.5 hover:bg-white active:translate-x-[1px] active:translate-y-[1px] active:shadow-none';
 
+  // Active linked pairs on the Studio Lab demo board
+  const demoLinkedPairs: { linkId: string; a: ActiveNote; b: ActiveNote }[] = [];
+  const seenDemoLinks = new Set<string>();
+  for (const n of demoNotes) {
+    if (!n.linkId || seenDemoLinks.has(n.linkId)) continue;
+    const partner = demoNotes.find((o) => o.id !== n.id && o.linkId === n.linkId);
+    if (partner) {
+      seenDemoLinks.add(n.linkId);
+      demoLinkedPairs.push({ linkId: n.linkId, a: n, b: partner });
+    }
+  }
+
   return (
     <div
       className={`${theme.worldClass} relative flex h-dvh w-screen flex-col overflow-hidden transition-colors duration-500`}
     >
-      {/* Bauhaus Architectural Top Header Bar (Mondrian structural divider) */}
+      {/* Bauhaus Architectural Top Header Bar */}
       <header className="z-20 flex shrink-0 items-center justify-between border-b-[3px] border-[#111111] px-4 py-2.5 sm:px-7 sm:py-3">
         <div className="flex items-center gap-3">
           <GameIcon className="h-9 w-9 shrink-0 shadow-[2px_2px_0_#111111] sm:h-10 sm:w-10" />
@@ -268,17 +325,16 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
       </header>
 
       {/* Main Responsive Bauhaus Stage */}
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center gap-4 px-4 py-2 sm:px-7 lg:flex-row lg:items-center lg:justify-between lg:gap-10">
-        {/* Left Zone: Animated Bauhaus Lockup + 6 Categories + Daily/Endless + Primary Play */}
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center gap-3 px-4 py-2 sm:px-7 lg:flex-row lg:items-center lg:justify-between lg:gap-10">
+        {/* Left Zone: Animated Bauhaus Lockup + Classic/Studio Lab Toggle + 6 Categories + Daily/Endless + Play */}
         <div className="flex w-full max-w-lg flex-col items-center text-center lg:items-start lg:text-left">
-          {/* Animated Bauhaus Grid Art Title Lockup (moved cleanly higher) */}
+          {/* Animated Bauhaus Grid Art Title Lockup */}
           <svg
             viewBox="0 0 420 120"
             role="img"
             aria-label="Sticky Notes Puzzle"
-            className="-mt-4 mb-5 h-auto w-[280px] overflow-visible sm:-mt-5 sm:mb-6 sm:w-[356px] lg:w-[390px]"
+            className="-mt-3 mb-3.5 h-auto w-[264px] overflow-visible sm:-mt-4 sm:mb-4 sm:w-[340px] lg:w-[376px]"
           >
-            {/* Left Bauhaus Ochre Note: nudges toward center along its red right block arrow */}
             <g transform="translate(8, 22)">
               <g className="lobby-note-left">
                 <rect x="4" y="4" width="66" height="66" fill="#111111" />
@@ -296,7 +352,6 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
               </g>
             </g>
 
-            {/* Right Bauhaus Cobalt Note: glides upward along its cream up block arrow */}
             <g transform="translate(344, 18)">
               <g className="lobby-note-right">
                 <rect x="4" y="4" width="66" height="66" fill="#111111" />
@@ -314,14 +369,11 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
               </g>
             </g>
 
-            {/* Center Bauhaus Architectural Title Block: STICKY [NOTES] */}
             <g transform="translate(84, 12)">
               <g className="lobby-note-center">
                 <rect x="5" y="5" width="250" height="86" fill="#111111" />
                 <rect width="250" height="86" fill="#F5F0E2" stroke="#111111" strokeWidth="3.5" />
-                {/* Red Accent Block behind NOTES (faithful to reference image) */}
                 <rect x="131" y="12" width="107" height="44" fill="#D6302A" stroke="#111111" strokeWidth="2.5" />
-                {/* Crisp Corner Fold Accent */}
                 <polygon
                   className="lobby-corner-flap"
                   points="234,86 250,70 250,86"
@@ -361,14 +413,61 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             </g>
           </svg>
 
-          {/* 6 Category Packs Selector (Progressive Unlock + Glow & Shine + Theme Sync) */}
-          <div className="mb-3 grid w-full grid-cols-2 gap-2 sm:grid-cols-3">
-            {THEME_ORDER.map((id) => {
+          {/* CLASSIC vs STUDIO LAB Mode Toggle Bar */}
+          <div
+            role="tablist"
+            aria-label="Game Mode"
+            className="mb-2.5 grid w-full grid-cols-2 border-2 border-[#111111] bg-[#f5f0e2] shadow-[3px_3px_0_#111111]"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={selectedMode === 'classic'}
+              onClick={() => {
+                if (selectedMode !== 'classic') {
+                  sound.playClick();
+                  onSelectMode('classic');
+                }
+              }}
+              className={`font-display flex cursor-pointer items-center justify-center gap-1.5 border-r-2 border-[#111111] py-2 text-xs font-black tracking-wider uppercase transition sm:text-sm ${
+                selectedMode === 'classic'
+                  ? 'bg-[#111111] text-[#e4b43c]'
+                  : 'bg-[#f5f0e2] text-[#111111] hover:bg-white'
+              }`}
+            >
+              <Layers className="h-4 w-4 shrink-0" />
+              <span>Classic</span>
+            </button>
+
+            <button
+              type="button"
+              role="tab"
+              aria-selected={selectedMode === 'lab'}
+              onClick={() => {
+                if (selectedMode !== 'lab') {
+                  sound.playClick();
+                  onSelectMode('lab');
+                }
+              }}
+              className={`font-display flex cursor-pointer items-center justify-center gap-1.5 py-2 text-xs font-black tracking-wider uppercase transition sm:text-sm ${
+                selectedMode === 'lab'
+                  ? 'bg-[#2b56a3] text-[#faf6ea]'
+                  : 'bg-[#f5f0e2] text-[#111111] hover:bg-white'
+              }`}
+            >
+              <FlaskConical className="h-4 w-4 shrink-0" />
+              <span>Studio Lab</span>
+            </button>
+          </div>
+
+          {/* 6 Category Packs Selector for Active Mode (15 levels each) */}
+          <div className="mb-2.5 grid w-full grid-cols-2 gap-2 sm:grid-cols-3">
+            {visiblePackIds.map((id) => {
               const t = THEMES[id];
+              const base = t.visualBase;
               const isSelected = id === selectedTheme;
               const unlocked = isPackUnlocked(id, progress.records);
-              const isProgressionPack = id !== 'fridge';
-              const showShine = unlocked && isProgressionPack;
+              const showShine = unlocked && isProgressionPack(id);
               const isJustUnlocked = showShine && progress.newlyUnlockedPacks.includes(id);
               const cleared = getPackClearedCount(id, progress.records);
               const totalLevels = PACK_LEVELS[id].length;
@@ -383,7 +482,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
                   }}
                   style={
                     showShine
-                      ? ({ '--pack-glow-rgb': PACK_GLOW_RGB[id] } as React.CSSProperties)
+                      ? ({ '--pack-glow-rgb': PACK_GLOW_RGB[base] } as React.CSSProperties)
                       : undefined
                   }
                   className={`group flex cursor-pointer items-center gap-2.5 border-2 border-[#111111] px-2.5 py-2 text-left transition active:translate-x-[1px] active:translate-y-[1px] ${
@@ -401,7 +500,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
                   {/* Solid Bauhaus Primary Color Swatch Block */}
                   <span
                     aria-hidden="true"
-                    style={{ backgroundColor: PACK_SWATCH_BG[id] }}
+                    style={{ backgroundColor: PACK_SWATCH_BG[base] }}
                     className={`relative flex h-7 w-7 shrink-0 items-center justify-center border-2 ${
                       isSelected && unlocked ? 'border-[#faf6ea]' : 'border-[#111111]'
                     } ${!unlocked ? 'opacity-65' : ''}`}
@@ -444,7 +543,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           </div>
 
           {/* Daily Puzzle (with Daily Mission preview) + Endless Wall Row */}
-          <div className="mb-2 grid w-full grid-cols-5 gap-2">
+          <div className="mb-1.5 grid w-full grid-cols-5 gap-2">
             <button
               type="button"
               onClick={onStartDaily}
@@ -473,7 +572,10 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
               </div>
 
               {todayDailyRecord ? (
-                <div className="flex shrink-0 items-center gap-0.5" aria-label={`Completed with ${todayDailyRecord.stars} stars`}>
+                <div
+                  className="flex shrink-0 items-center gap-0.5"
+                  aria-label={`Completed with ${todayDailyRecord.stars} stars`}
+                >
                   {[1, 2, 3].map((s) => (
                     <Star
                       key={s}
@@ -501,18 +603,18 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             </button>
           </div>
 
-          {/* Primary Play Action (moved slightly down, with specular shine sweep & Bauhaus block styling) */}
+          {/* Primary Play Action */}
           {selectedUnlocked ? (
             <button
               type="button"
               onClick={() => onStartPack(selectedTheme)}
-              className={`play-btn-shine font-display mt-3.5 flex w-full cursor-pointer items-center justify-center gap-2.5 border-[3px] border-[#111111] px-6 py-3.5 text-lg font-black tracking-wider uppercase shadow-[5px_5px_0_#111111] transition hover:-translate-y-0.5 active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0_#111111] whitespace-nowrap ${PLAY_BUTTON_THEME[selectedTheme]}`}
+              className={`play-btn-shine font-display mt-3 flex w-full cursor-pointer items-center justify-center gap-2.5 border-[3px] border-[#111111] px-6 py-3.5 text-lg font-black tracking-wider uppercase shadow-[5px_5px_0_#111111] transition hover:-translate-y-0.5 active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0_#111111] whitespace-nowrap ${PLAY_BUTTON_THEME[theme.visualBase]}`}
             >
               <Play className="relative z-10 h-5 w-5 fill-current" />
               <span className="relative z-10">Play {theme.shortName}</span>
             </button>
           ) : (
-            <div className="mt-3.5 w-full">
+            <div className="mt-3 w-full">
               <button
                 type="button"
                 onClick={() => {
@@ -526,14 +628,15 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
               </button>
               {selectedRequirement && (
                 <p className="font-mono-num mt-1.5 text-center text-[11px] font-bold opacity-85 lg:text-left">
-                  Clear all {selectedRequirement.total} {selectedRequirement.prevPackName} walls to unlock ({selectedRequirement.cleared}/{selectedRequirement.total})
+                  Clear all {selectedRequirement.total} {selectedRequirement.prevPackName} walls to unlock (
+                  {selectedRequirement.cleared}/{selectedRequirement.total})
                 </p>
               )}
             </div>
           )}
         </div>
 
-        {/* Right Zone: Live Interactive Bauhaus Demo Wall + Mondrian Color Mosaic */}
+        {/* Right Zone: Live Interactive Bauhaus Demo Wall (switches to live Studio Lab mechanics in Lab mode!) */}
         <div className="hidden items-stretch gap-3 sm:flex">
           <div className="flex flex-col items-center">
             <div
@@ -545,6 +648,9 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
                   const size = (100 - gap * 2) / 3;
                   const peelDir = peelingIds[note.id];
                   const isBumped = bumpedId?.id === note.id;
+                  const tapedLocked = isNoteTapedLocked(note, demoNotes);
+                  const tapeMeta = note.tapeColor ? TAPE_COLOR_META[note.tapeColor] : null;
+                  const keyMeta = note.keyColor ? TAPE_COLOR_META[note.keyColor] : null;
 
                   return (
                     <button
@@ -567,7 +673,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
                             : 'note-spawn'
                       }`}
                     >
-                      {/* Top-right & Bottom-right Bauhaus corner folds */}
+                      {/* Corner Folds */}
                       <svg
                         aria-hidden="true"
                         viewBox="0 0 18 18"
@@ -595,6 +701,53 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
                         />
                       </svg>
 
+                      {/* Studio Lab Demo Indicators */}
+                      {tapedLocked && tapeMeta && !peelDir && (
+                        <svg
+                          aria-hidden="true"
+                          viewBox="0 0 48 48"
+                          className="pointer-events-none absolute -top-[2px] -left-[2px] z-20 h-[56%] w-[56%]"
+                        >
+                          <polygon
+                            points="0,18 18,0 32,0 0,32"
+                            fill={tapeMeta.hex}
+                            stroke="#111111"
+                            strokeWidth="2.4"
+                          />
+                        </svg>
+                      )}
+
+                      {keyMeta && !peelDir && (
+                        <div
+                          aria-hidden="true"
+                          style={{ backgroundColor: keyMeta.hex, color: keyMeta.text }}
+                          className="pointer-events-none absolute -top-1 -left-1 z-20 flex h-5 w-5 items-center justify-center border-2 border-[#111111]"
+                        >
+                          <svg viewBox="0 0 20 20" fill="none" className="h-3.5 w-3.5">
+                            <circle cx="7" cy="10" r="3.4" stroke="currentColor" strokeWidth="2.2" />
+                            <path d="M10.4 10H17M15 10V13" stroke="currentColor" strokeWidth="2.2" />
+                          </svg>
+                        </div>
+                      )}
+
+                      {note.pivot && !peelDir && (
+                        <span
+                          aria-hidden="true"
+                          className="pointer-events-none absolute top-1 left-1 z-20 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-[#111111] bg-[#e4b43c]"
+                        >
+                          <span className="h-1 w-1 rounded-full bg-[#111111]" />
+                        </span>
+                      )}
+
+                      {note.linkId && !peelDir && (
+                        <span
+                          aria-hidden="true"
+                          className="font-mono-num pointer-events-none absolute bottom-0.5 left-0.5 z-20 border border-[#111111] bg-[#111111] px-1 text-[9px] font-black text-[#e4b43c]"
+                        >
+                          {note.linkId}
+                        </span>
+                      )}
+
                       <BauhausNoteArrow
                         dir={note.dir}
                         variant={activeStyle.arrowVariant}
@@ -606,6 +759,37 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
                   );
                 })}
 
+                {/* Dashed Ink Link Connector on Lab Demo Wall */}
+                {demoLinkedPairs.length > 0 && (
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 100 100"
+                    preserveAspectRatio="none"
+                    className="pointer-events-none absolute inset-0 z-30 h-full w-full overflow-visible"
+                  >
+                    {demoLinkedPairs.map(({ linkId, a, b }) => {
+                      const gap = 4.2;
+                      const size = (100 - gap * 2) / 3;
+                      const ax = a.c * (size + gap) + size / 2;
+                      const ay = a.r * (size + gap) + size / 2;
+                      const bx = b.c * (size + gap) + size / 2;
+                      const by = b.r * (size + gap) + size / 2;
+                      return (
+                        <line
+                          key={linkId}
+                          x1={ax}
+                          y1={ay}
+                          x2={bx}
+                          y2={by}
+                          stroke={theme.isDark ? '#e4b43c' : '#111111'}
+                          strokeWidth="1.6"
+                          strokeDasharray="3.2 2.2"
+                        />
+                      );
+                    })}
+                  </svg>
+                )}
+
                 {demoResetting && (
                   <div className="font-display pointer-events-none absolute inset-0 flex items-center justify-center text-lg font-black uppercase">
                     Grid Cleared!
@@ -615,11 +799,13 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             </div>
 
             <p className="font-mono-num mt-3 text-[11px] font-bold tracking-wide uppercase opacity-80">
-              Try tapping a note · {activeStyle.name}
+              {selectedMode === 'lab'
+                ? `Studio Lab Preview · ${activeStyle.name}`
+                : `Try tapping a note · ${activeStyle.name}`}
             </p>
           </div>
 
-          {/* Right-edge Decorative Mondrian Primary Color Column (echoes reference composition) */}
+          {/* Right-edge Decorative Mondrian Primary Color Column */}
           <div
             aria-hidden="true"
             className="hidden h-[328px] w-16 grid-rows-6 border-[3px] border-[#111111] shadow-[6px_6px_0_#111111] xl:grid"

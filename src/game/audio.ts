@@ -417,9 +417,9 @@ class SoundEngine {
 
     osc.type = 'triangle';
     const startFreq =
-      theme === 'fridge' || theme === 'gallery'
+      theme === 'fridge' || theme === 'gallery' || theme === 'lab-tape' || theme === 'lab-master'
         ? 185
-        : theme === 'cork' || theme === 'atelier'
+        : theme === 'cork' || theme === 'atelier' || theme === 'lab-pivot' || theme === 'lab-matrix'
           ? 142
           : 160;
     osc.frequency.setValueAtTime(startFreq, now);
@@ -448,6 +448,45 @@ class SoundEngine {
       n.start(now);
       n.stop(now + 0.08);
     }
+  }
+
+  /** Crisp ascending two-note snap when a Key Note unlocks a Taped Note */
+  public playUnlockTape(): void {
+    const ctx = this.ensureSfxContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    [659.25, 987.77].forEach((freq, i) => {
+      const t = now + i * 0.055;
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, t);
+      g.gain.setValueAtTime(0.001, t);
+      g.gain.linearRampToValueAtTime(0.14, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+      osc.connect(g);
+      g.connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.24);
+    });
+  }
+
+  /** Subtle mechanical watch-click when Pivot Notes rotate 90° clockwise */
+  public playPivotTick(): void {
+    const ctx = this.ensureSfxContext();
+    if (!ctx) return;
+    const now = ctx.currentTime + 0.04;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1180, now);
+    osc.frequency.exponentialRampToValueAtTime(620, now + 0.035);
+    g.gain.setValueAtTime(0.06, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+    osc.connect(g);
+    g.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.045);
   }
 
   public playUndo(): void {

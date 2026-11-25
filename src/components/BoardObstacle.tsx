@@ -38,21 +38,21 @@ export const BoardObstacle: React.FC<BoardObstacleProps> = ({
         knockKey > 0 ? 'blocker-knock' : ''
       }`}
     >
-      {theme.id === 'fridge' && (
+      {theme.visualBase === 'fridge' && (
         /* Solid Bauhaus Vermilion Square Block (mirrors the reference bottom-left red square) */
         <div className="relative flex h-full w-full items-center justify-center border-2 border-[#111111] bg-[#d6302a] shadow-[2px_2px_0_#111111]">
           <div className="h-[34%] w-[34%] border-2 border-[#111111] bg-[#111111]" />
         </div>
       )}
 
-      {theme.id === 'cork' && (
+      {theme.visualBase === 'cork' && (
         /* Bauhaus Ink Frame with Centered Ochre Circle */
         <div className="relative flex h-full w-full items-center justify-center border-2 border-[#111111] bg-[#111111] shadow-[2px_2px_0_#111111]">
           <div className="h-[58%] w-[58%] rounded-full border-2 border-[#111111] bg-[#e4b43c]" />
         </div>
       )}
 
-      {theme.id === 'drafting' && (
+      {theme.visualBase === 'drafting' && (
         /* Bauhaus Drafting Crosshair Plate */
         <div className="relative flex h-full w-full items-center justify-center border-2 border-[#0b1615] bg-[#f5f0e2] shadow-[2px_2px_0_#0b1615]">
           <svg viewBox="0 0 32 32" className="h-[72%] w-[72%]" fill="none">
@@ -63,14 +63,14 @@ export const BoardObstacle: React.FC<BoardObstacleProps> = ({
         </div>
       )}
 
-      {theme.id === 'midnight' && (
+      {theme.visualBase === 'midnight' && (
         /* Bauhaus Obsidian & Ochre Geometric Monolith */
         <div className="relative flex h-full w-full items-center justify-center border-2 border-[#e4b43c] bg-[#0b0d12] shadow-[2px_2px_0_#07080b]">
           <div className="h-[46%] w-[46%] rotate-45 border-2 border-[#0b0d12] bg-[#e4b43c]" />
         </div>
       )}
 
-      {theme.id === 'atelier' && (
+      {theme.visualBase === 'atelier' && (
         /* Bauhaus Atelier Split Diagonal Print Block */
         <div className="relative flex h-full w-full items-center justify-center overflow-hidden border-2 border-[#111111] bg-[#111111] shadow-[2px_2px_0_#111111]">
           <svg viewBox="0 0 36 36" className="h-full w-full" preserveAspectRatio="none">
@@ -81,7 +81,7 @@ export const BoardObstacle: React.FC<BoardObstacleProps> = ({
         </div>
       )}
 
-      {theme.id === 'gallery' && (
+      {theme.visualBase === 'gallery' && (
         /* Bauhaus Gallery Constructivist Cobalt & Red Split Block */
         <div className="relative flex h-full w-full items-center justify-center overflow-hidden border-2 border-[#111111] bg-[#2b56a3] shadow-[2px_2px_0_#111111]">
           <svg viewBox="0 0 36 36" className="h-full w-full" preserveAspectRatio="none">

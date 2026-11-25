@@ -21,6 +21,7 @@ import {
   PauseModal,
   VictoryModal,
 } from './components/Modals';
+import { ModeTutorialModal } from './components/ModeTutorialModal';
 import { ParticleCanvas, ParticleCanvasHandle } from './components/ParticleCanvas';
 import { SplashScreen } from './components/SplashScreen';
 import { StudioArchiveModal, StudioArchiveTab } from './components/StudioArchiveModal';
@@ -30,8 +31,11 @@ import {
   createDailyLevel,
   createEndlessLevel,
   getHighestUnlockedPack,
+  getModeForPack,
   getNextPackId,
+  getThemesForMode,
   getTodayDateKey,
+  getUnlockedPackAfterCompleting,
   isPackUnlocked,
   PACK_LEVELS,
   THEMES,
@@ -43,7 +47,7 @@ import {
   PAPER_STYLE_ORDER,
   PAPER_STYLES,
 } from './game/mastery';
-import { checkNotePath, findBestHintNote } from './game/solver';
+import { evaluateNoteTap, findBestHintNote } from './game/solver';
 import {
   applyDailyCompletion,
   loadProgress,
@@ -55,6 +59,7 @@ import {
   BlockerFeedback,
   DailyMission,
   Direction,
+  GameMode,
   GameScreen,
   HintState,
   LevelDef,
@@ -90,6 +95,10 @@ function instantiateNotes(level: LevelDef): ActiveNote[] {
     color: spec.color,
     tilt: 0,
     under: spec.under ? { ...spec.under } : undefined,
+    tapeColor: spec.tapeColor,
+    keyColor: spec.keyColor,
+    pivot: spec.pivot,
+    linkId: spec.linkId,
   }));
 }
 
@@ -108,9 +117,13 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [boardTransition, setBoardTransition] = useState<'idle' | 'out' | 'in'>('idle');
   const [screen, setScreen] = useState<GameScreen>('TITLE_MENU');
-  const initialSafeTheme: ThemeId = isPackUnlocked(progress.lastTheme, progress.records)
-    ? progress.lastTheme
-    : 'fridge';
+  const [selectedMode, setSelectedMode] = useState<GameMode>(progress.lastMode);
+  const initialModeThemes = getThemesForMode(progress.lastMode);
+  const initialSafeTheme: ThemeId =
+    initialModeThemes.includes(progress.lastTheme) &&
+    isPackUnlocked(progress.lastTheme, progress.records)
+      ? progress.lastTheme
+      : initialModeThemes[0];
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>(initialSafeTheme);
   const [currentLevel, setCurrentLevel] = useState<LevelDef>(
     () => PACK_LEVELS[initialSafeTheme][0]
@@ -130,6 +143,11 @@ export default function App() {
   const [showLevelPicker, setShowLevelPicker] = useState(false);
   const [pickerInitialPack, setPickerInitialPack] = useState<ThemeId | undefined>(undefined);
   const [archiveTab, setArchiveTab] = useState<StudioArchiveTab | null>(null);
+  const [activeTutorialMode, setActiveTutorialMode] = useState<GameMode | null>(null);
+  const seenTutorialRef = useRef({
+    classic: progress.seenClassicTutorial,
+    lab: progress.seenLabTutorial,
+  });
 
   // Combo & timing tracking
   const [combo, setCombo] = useState(0);
@@ -225,6 +243,7 @@ export default function App() {
     screen === 'PLAYING' &&
     !showLevelPicker &&
     archiveTab === null &&
+    activeTutorialMode === null &&
     boardTransition !== 'out' &&
     !isCelebratingClear;
   const needsLiveTimerTick =
@@ -279,6 +298,7 @@ export default function App() {
 
     setCurrentLevel(level);
     if (!level.isDaily && !level.isEndless) {
+      setSelectedMode(getModeForPack(level.packId));
       setSelectedTheme(level.packId);
     }
     setNotes(instantiateNotes(level));
@@ -302,6 +322,13 @@ export default function App() {
     setShowLevelPicker(false);
     setScreen('PLAYING');
 
+    // First-play instruction panel for Classic Mode and Studio Lab Mode
+    if (level.mode === 'classic' && !seenTutorialRef.current.classic) {
+      setActiveTutorialMode('classic');
+    } else if (level.mode === 'lab' && !seenTutorialRef.current.lab) {
+      setActiveTutorialMode('lab');
+    }
+
     setProgress((prev) => {
       const clearNewBadge =
         !level.isDaily &&
@@ -309,10 +336,19 @@ export default function App() {
         prev.newlyUnlockedPacks.includes(level.packId);
       const nextLastTheme =
         !level.isDaily && !level.isEndless ? level.packId : prev.lastTheme;
+      const nextLastMode =
+        !level.isDaily && !level.isEndless ? getModeForPack(level.packId) : prev.lastMode;
 
-      if (!clearNewBadge && prev.lastTheme === nextLastTheme) return prev;
+      if (
+        !clearNewBadge &&
+        prev.lastTheme === nextLastTheme &&
+        prev.lastMode === nextLastMode
+      ) {
+        return prev;
+      }
       return {
         ...prev,
+        lastMode: nextLastMode,
         lastTheme: nextLastTheme,
         newlyUnlockedPacks: clearNewBadge
           ? prev.newlyUnlockedPacks.filter((id) => id !== level.packId)
@@ -352,7 +388,41 @@ export default function App() {
     sound.playClick();
     setIsCelebratingClear(false);
     setShowLevelPicker(false);
+    setActiveTutorialMode(null);
     setScreen('TITLE_MENU');
+  }, []);
+
+  const handleSelectMode = useCallback(
+    (mode: GameMode) => {
+      setSelectedMode(mode);
+      const themes = getThemesForMode(mode);
+      setSelectedTheme((prev) => {
+        const next =
+          themes.includes(prev) && isPackUnlocked(prev, progress.records)
+            ? prev
+            : themes[0];
+        setProgress((p) => ({ ...p, lastMode: mode, lastTheme: next }));
+        return next;
+      });
+    },
+    [progress.records]
+  );
+
+  const handleDismissTutorial = useCallback(() => {
+    setActiveTutorialMode((mode) => {
+      if (mode === 'classic') {
+        seenTutorialRef.current.classic = true;
+        setProgress((prev) =>
+          prev.seenClassicTutorial ? prev : { ...prev, seenClassicTutorial: true }
+        );
+      } else if (mode === 'lab') {
+        seenTutorialRef.current.lab = true;
+        setProgress((prev) =>
+          prev.seenLabTutorial ? prev : { ...prev, seenLabTutorial: true }
+        );
+      }
+      return null;
+    });
   }, []);
 
   const handleOpenLevelPicker = useCallback((packOverride?: ThemeId) => {
@@ -397,9 +467,10 @@ export default function App() {
     (themeOverride?: ThemeId) => {
       sound.playClick();
       const candidate = themeOverride ?? selectedTheme;
+      const modeForCandidate = getModeForPack(candidate);
       const targetTheme = isPackUnlocked(candidate, progress.records)
         ? candidate
-        : getHighestUnlockedPack(progress.records);
+        : getHighestUnlockedPack(progress.records, modeForCandidate);
       const lvl = createEndlessLevel(progress.endlessCurrentLevel, targetTheme);
       startLevel(lvl);
     },
@@ -407,7 +478,12 @@ export default function App() {
   );
 
   const triggerVictory = useCallback(
-    (finalBumps: number, finalMaxCombo: number, lastNotePos?: { x: number; y: number }) => {
+    (
+      finalBumps: number,
+      finalMaxCombo: number,
+      lastNotePos?: { x: number; y: number },
+      peeledOnWinningTap = 1
+    ) => {
       const elapsedMs = getCurrentElapsedMs();
       const elapsedSec = Math.max(1, Math.round(elapsedMs / 1000));
       const stars: 1 | 2 | 3 = finalBumps === 0 ? 3 : finalBumps <= 2 ? 2 : 1;
@@ -442,11 +518,11 @@ export default function App() {
         missionPassedThisRun || existingRecord?.dailyMissionCompleted
       );
 
-      // Check whether completing this wall unlocks the next category pack!
+      // Check whether completing this wall unlocks another category pack!
       let newlyUnlockedPack: ThemeId | null = null;
       if (!currentLevel.isDaily && !currentLevel.isEndless) {
-        const nextPack = getNextPackId(currentLevel.packId);
-        if (nextPack && !isPackUnlocked(nextPack, progress.records)) {
+        const candidatePack = getUnlockedPackAfterCompleting(currentLevel.packId);
+        if (candidatePack && !isPackUnlocked(candidatePack, progress.records)) {
           const nextRecords = {
             ...progress.records,
             [currentLevel.id]: mergeLevelRecord(
@@ -457,8 +533,8 @@ export default function App() {
               recordTimeMs
             ),
           };
-          if (isPackUnlocked(nextPack, nextRecords)) {
-            newlyUnlockedPack = nextPack;
+          if (isPackUnlocked(candidatePack, nextRecords)) {
+            newlyUnlockedPack = candidatePack;
           }
         }
       }
@@ -519,7 +595,7 @@ export default function App() {
         const withStats: SavedProgress = {
           ...base,
           stats: {
-            totalSheetsPeeled: base.stats.totalSheetsPeeled + 1,
+            totalSheetsPeeled: base.stats.totalSheetsPeeled + peeledOnWinningTap,
             totalWallsCleared: base.stats.totalWallsCleared + 1,
             spotlessClears: base.stats.spotlessClears + (finalBumps === 0 ? 1 : 0),
             longestCleanStreak: Math.max(base.stats.longestCleanStreak, finalMaxCombo),
@@ -601,9 +677,16 @@ export default function App() {
 
   const handleTapNote = useCallback(
     (note: ActiveNote, el: HTMLButtonElement | null) => {
-      if (screen !== 'PLAYING' || bumps >= MAX_BUMPS || isCelebratingClear) return;
+      if (
+        screen !== 'PLAYING' ||
+        bumps >= MAX_BUMPS ||
+        isCelebratingClear ||
+        activeTutorialMode !== null
+      ) {
+        return;
+      }
 
-      const check = checkNotePath(
+      const ev = evaluateNoteTap(
         note,
         notes,
         obstacles,
@@ -612,13 +695,16 @@ export default function App() {
       );
 
       const rect = el?.getBoundingClientRect();
+      const boardRect = boardContainerRef.current?.getBoundingClientRect();
       const cx = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
       const cy = rect ? rect.top + rect.height / 2 : window.innerHeight / 2;
       const activeStyle = PAPER_STYLES[progress.paperStyle] ?? PAPER_STYLES.primary;
 
-      if (check.clear) {
+      if (ev.canPeel) {
         const now = Date.now();
-        const nextCombo = now - lastPeelTsRef.current < 1450 ? combo + 1 : 1;
+        const peeledCount = ev.peeledNotes.length;
+        const nextCombo =
+          now - lastPeelTsRef.current < 1450 ? combo + peeledCount : peeledCount;
         lastPeelTsRef.current = now;
         const nextMaxCombo = Math.max(maxCombo, nextCombo);
 
@@ -632,61 +718,64 @@ export default function App() {
         comboClearTimerRef.current = window.setTimeout(() => setCombo(0), 1550);
 
         sound.playPeel(nextCombo, currentLevel.packId, Boolean(note.under));
-        particleRef.current?.emitPeel(cx, cy, note.dir, activeStyle.paperHex[note.color]);
+        if (ev.unlockedTapeColors.length > 0) {
+          sound.playUnlockTape();
+        }
+        if (ev.rotatedPivotCount > 0) {
+          sound.playPivotTick();
+        }
 
-        const ghostKey = `ghost-${note.id}-${now}-${Math.random().toString(36).slice(2, 6)}`;
-        const peeledVisualNote: ActiveNote = {
-          ...note,
-          under: undefined,
-        };
-        setPeelingGhosts((prev) => [
-          ...prev,
-          { key: ghostKey, note: peeledVisualNote, dir: note.dir },
-        ]);
+        const newGhosts: PeelingGhost[] = [];
+        for (const peeled of ev.peeledNotes) {
+          let px = cx;
+          let py = cy;
+          if (peeled.id !== note.id && boardRect) {
+            px = boardRect.left + ((peeled.c + 0.5) / currentLevel.cols) * boardRect.width;
+            py = boardRect.top + ((peeled.r + 0.5) / currentLevel.rows) * boardRect.height;
+          }
+          particleRef.current?.emitPeel(px, py, peeled.dir, activeStyle.paperHex[peeled.color]);
+
+          const ghostKey = `ghost-${peeled.id}-${now}-${Math.random().toString(36).slice(2, 6)}`;
+          newGhosts.push({
+            key: ghostKey,
+            note: { ...peeled, under: undefined },
+            dir: peeled.dir,
+          });
+        }
+
+        const ghostKeys = new Set(newGhosts.map((g) => g.key));
+        setPeelingGhosts((prev) => [...prev, ...newGhosts]);
         window.setTimeout(() => {
-          setPeelingGhosts((prev) => prev.filter((g) => g.key !== ghostKey));
+          setPeelingGhosts((prev) => prev.filter((g) => !ghostKeys.has(g.key)));
         }, 410);
 
         setUndoStack((prev) => [
           ...prev,
           {
-            note: {
-              ...note,
-              under: note.under ? { ...note.under } : undefined,
-            },
-            wasStackedTop: Boolean(note.under),
+            prevNotes: notes.map((n) => ({
+              ...n,
+              under: n.under ? { ...n.under } : undefined,
+            })),
+            peeledCount,
           },
         ]);
 
-        const nextNotes = note.under
-          ? notes.map((n) =>
-              n.id === note.id
-                ? {
-                    ...n,
-                    dir: note.under!.dir,
-                    color: note.under!.color,
-                    under: undefined,
-                  }
-                : n
-            )
-          : notes.filter((n) => n.id !== note.id);
+        setNotes(ev.nextNotes);
 
-        setNotes(nextNotes);
-
-        if (nextNotes.length === 0) {
-          triggerVictory(bumps, nextMaxCombo, { x: cx, y: cy });
+        if (ev.nextNotes.length === 0) {
+          triggerVictory(bumps, nextMaxCombo, { x: cx, y: cy }, peeledCount);
         } else {
           setProgress((prev) => ({
             ...prev,
             stats: {
               ...prev.stats,
-              totalSheetsPeeled: prev.stats.totalSheetsPeeled + 1,
+              totalSheetsPeeled: prev.stats.totalSheetsPeeled + peeledCount,
               longestCleanStreak: Math.max(prev.stats.longestCleanStreak, nextCombo),
             },
           }));
         }
       } else {
-        // Blocked collision!
+        // Blocked, taped-locked, or partner-blocked collision!
         const nextBumps = bumps + 1;
         sound.playBump(currentLevel.packId);
         particleRef.current?.emitBump(cx, cy, activeStyle.paperHex[note.color]);
@@ -695,14 +784,16 @@ export default function App() {
         setAnimateSpawn(false);
 
         const fb: BlockerFeedback = {
-          tappedId: note.id,
-          tappedR: note.r,
-          tappedC: note.c,
-          dir: note.dir,
-          blockerId: check.blockerNote?.id ?? null,
-          blockerR: check.blockerR,
-          blockerC: check.blockerC,
-          isObstacle: check.blockerObstacle !== null,
+          tappedId: ev.blameNote.id,
+          tappedR: ev.blameNote.r,
+          tappedC: ev.blameNote.c,
+          dir: ev.blameNote.dir,
+          blockerId: ev.blockerNote?.id ?? null,
+          blockerR: ev.blockerR,
+          blockerC: ev.blockerC,
+          isObstacle: ev.blockerObstacle !== null,
+          reason: ev.failureReason,
+          tapeColor: ev.tapeColor,
           timestamp: Date.now(),
         };
         setBlockerFeedback(fb);
@@ -710,7 +801,7 @@ export default function App() {
         if (blockerTimerRef.current) window.clearTimeout(blockerTimerRef.current);
         blockerTimerRef.current = window.setTimeout(() => {
           setBlockerFeedback(null);
-        }, 520);
+        }, 560);
 
         if (nextBumps >= MAX_BUMPS) {
           const elapsedSec = Math.max(
@@ -726,6 +817,7 @@ export default function App() {
       }
     },
     [
+      activeTutorialMode,
       bumps,
       combo,
       currentLevel,
@@ -753,16 +845,11 @@ export default function App() {
       ...prev,
       stats: {
         ...prev.stats,
-        totalSheetsPeeled: Math.max(0, prev.stats.totalSheetsPeeled - 1),
+        totalSheetsPeeled: Math.max(0, prev.stats.totalSheetsPeeled - last.peeledCount),
       },
     }));
 
-    setNotes((prev) => {
-      if (last.wasStackedTop) {
-        return prev.map((n) => (n.id === last.note.id ? last.note : n));
-      }
-      return [...prev, last.note];
-    });
+    setNotes(last.prevNotes);
   }, [isCelebratingClear, screen, undoStack]);
 
   const handleRestart = useCallback(() => {
@@ -777,7 +864,7 @@ export default function App() {
       const existing = notes.find((n) => n.id === hint.noteId);
       if (
         existing &&
-        checkNotePath(existing, notes, obstacles, currentLevel.rows, currentLevel.cols).clear
+        evaluateNoteTap(existing, notes, obstacles, currentLevel.rows, currentLevel.cols).canPeel
       ) {
         sound.playHint();
         setHintsUsed((prev) => prev + 1);
@@ -834,7 +921,7 @@ export default function App() {
     }
 
     if (currentLevel.isDaily) {
-      const endlessTheme = getHighestUnlockedPack(progress.records);
+      const endlessTheme = getHighestUnlockedPack(progress.records, 'classic');
       startLevel(createEndlessLevel(progress.endlessCurrentLevel, endlessTheme), true);
       return;
     }
@@ -862,7 +949,8 @@ export default function App() {
     if (firstUnfinishedInPack) {
       startLevel(firstUnfinishedInPack, true);
     } else {
-      startLevel(PACK_LEVELS.fridge[0], true);
+      const fallbackPack = getThemesForMode(currentLevel.mode)[0];
+      startLevel(PACK_LEVELS[fallbackPack][0], true);
     }
   }, [
     currentLevel,
@@ -876,6 +964,14 @@ export default function App() {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      if (activeTutorialMode !== null) {
+        if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleDismissTutorial();
+        }
+        return;
+      }
 
       if (archiveTab !== null) {
         if (e.key === 'Escape') {
@@ -978,10 +1074,12 @@ export default function App() {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [
+    activeTutorialMode,
     archiveTab,
     currentLevel.cols,
     currentLevel.rows,
     focusedCell,
+    handleDismissTutorial,
     handleGoHome,
     handleHint,
     handleNextLevel,
@@ -1063,10 +1161,12 @@ export default function App() {
 
       {screen === 'TITLE_MENU' ? (
         <TitleScreen
+          selectedMode={selectedMode}
           selectedTheme={selectedTheme}
           progress={progress}
           muted={progress.muted}
           musicMuted={progress.musicMuted}
+          onSelectMode={handleSelectMode}
           onSelectTheme={setSelectedTheme}
           onStartPack={handleStartPack}
           onOpenLevels={handleOpenLevelPicker}
@@ -1217,7 +1317,7 @@ export default function App() {
               className={`h-full w-full transition-transform duration-300 ease-out ${
                 peelProgressRatio >= 1
                   ? 'bg-[#10b981]'
-                  : activeTheme.id === 'cork'
+                  : activeTheme.visualBase === 'cork'
                     ? 'bg-[#d6302a]'
                     : 'bg-[#e4b43c]'
               }`}
@@ -1427,7 +1527,14 @@ export default function App() {
       )}
 
       {/* MODALS */}
-      {archiveTab !== null && (
+      {activeTutorialMode !== null && (
+        <ModeTutorialModal
+          mode={activeTutorialMode}
+          onDismiss={handleDismissTutorial}
+        />
+      )}
+
+      {archiveTab !== null && activeTutorialMode === null && (
         <StudioArchiveModal
           progress={progress}
           initialTab={archiveTab}
@@ -1436,7 +1543,7 @@ export default function App() {
         />
       )}
 
-      {showLevelPicker && archiveTab === null && (
+      {showLevelPicker && archiveTab === null && activeTutorialMode === null && (
         <LevelPickerModal
           currentLevel={currentLevel}
           initialPack={pickerInitialPack}
@@ -1451,7 +1558,7 @@ export default function App() {
         />
       )}
 
-      {screen === 'PAUSED' && !showLevelPicker && archiveTab === null && (
+      {screen === 'PAUSED' && !showLevelPicker && archiveTab === null && activeTutorialMode === null && (
         <PauseModal
           level={currentLevel}
           muted={progress.muted}
@@ -1470,13 +1577,18 @@ export default function App() {
             sound.playClick();
             handleOpenArchive(tab);
           }}
+          onOpenTutorial={() => {
+            sound.playClick();
+            setScreen('PLAYING');
+            setActiveTutorialMode(currentLevel.mode);
+          }}
           onToggleMute={handleToggleMute}
           onToggleMusic={handleToggleMusic}
           onTitleScreen={handleGoHome}
         />
       )}
 
-      {screen === 'VICTORY' && !showLevelPicker && archiveTab === null && (
+      {screen === 'VICTORY' && !showLevelPicker && archiveTab === null && activeTutorialMode === null && (
         <VictoryModal
           level={currentLevel}
           starsEarned={victoryStats.stars}
@@ -1508,7 +1620,7 @@ export default function App() {
         />
       )}
 
-      {screen === 'FAILED' && !showLevelPicker && archiveTab === null && (
+      {screen === 'FAILED' && !showLevelPicker && archiveTab === null && activeTutorialMode === null && (
         <FailedModal
           level={currentLevel}
           sheetsRemaining={sheetsRemaining}

@@ -10,7 +10,13 @@ import {
   X,
 } from 'lucide-react';
 import { sound } from '../game/audio';
-import { getPackClearedCount, PACK_LEVELS, THEME_ORDER, THEMES } from '../game/levels';
+import {
+  CLASSIC_THEME_ORDER,
+  getPackClearedCount,
+  LAB_THEME_ORDER,
+  PACK_LEVELS,
+  THEMES,
+} from '../game/levels';
 import {
   ACHIEVEMENTS,
   computeMasterySummary,
@@ -20,7 +26,13 @@ import {
   PAPER_STYLES,
   StampMotif,
 } from '../game/mastery';
-import { Direction, PaperColor, PaperStyleId, SavedProgress, ThemeId } from '../game/types';
+import {
+  ClassicThemeId,
+  Direction,
+  PaperColor,
+  PaperStyleId,
+  SavedProgress,
+} from '../game/types';
 import { formatStopwatchMs } from './Modals';
 import { BauhausNoteArrow } from './StickyNote';
 
@@ -33,7 +45,7 @@ interface StudioArchiveModalProps {
   onClose: () => void;
 }
 
-const PACK_SWATCH_BG: Record<ThemeId, string> = {
+const PACK_SWATCH_BG: Record<ClassicThemeId, string> = {
   fridge: '#f5f0e2',
   cork: '#e4b43c',
   drafting: '#1e6b64',
@@ -403,7 +415,9 @@ export const StudioArchiveModal: React.FC<StudioArchiveModalProps> = ({
                     {summary.favoritePackId && (
                       <span
                         aria-hidden="true"
-                        style={{ backgroundColor: PACK_SWATCH_BG[summary.favoritePackId] }}
+                        style={{
+                          backgroundColor: PACK_SWATCH_BG[THEMES[summary.favoritePackId].visualBase],
+                        }}
                         className="h-5 w-5 shrink-0 border-2 border-[#111111]"
                       />
                     )}
@@ -461,7 +475,7 @@ export const StudioArchiveModal: React.FC<StudioArchiveModalProps> = ({
                 )}
               </div>
 
-              {/* Pack Mastery Breakdown (All 6 Packs) */}
+              {/* Pack Mastery Breakdown (Classic 6 + Studio Lab 6) */}
               <div className="border-2 border-[#111111] bg-[#faf6ea] p-3.5 shadow-[3px_3px_0_#111111]">
                 <div className="mb-2.5 flex items-center justify-between">
                   <span className="font-display text-xs font-black tracking-wider uppercase">
@@ -471,8 +485,12 @@ export const StudioArchiveModal: React.FC<StudioArchiveModalProps> = ({
                     {summary.totalStars}/{summary.maxStars} ★
                   </span>
                 </div>
-                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-                  {THEME_ORDER.map((id) => {
+
+                <div className="mb-1.5 text-[10px] font-extrabold tracking-wider uppercase opacity-65">
+                  Classic Mode
+                </div>
+                <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {CLASSIC_THEME_ORDER.map((id) => {
                     const cleared = getPackClearedCount(id, progress.records);
                     const total = PACK_LEVELS[id].length;
                     const pct = Math.round((cleared / total) * 100);
@@ -481,7 +499,7 @@ export const StudioArchiveModal: React.FC<StudioArchiveModalProps> = ({
                         <div className="flex items-center justify-between gap-1">
                           <div className="flex min-w-0 items-center gap-1.5">
                             <span
-                              style={{ backgroundColor: PACK_SWATCH_BG[id] }}
+                              style={{ backgroundColor: PACK_SWATCH_BG[THEMES[id].visualBase] }}
                               className="h-3 w-3 shrink-0 border border-[#111111]"
                             />
                             <span className="font-display truncate text-[11px] font-extrabold uppercase">
@@ -494,6 +512,38 @@ export const StudioArchiveModal: React.FC<StudioArchiveModalProps> = ({
                         </div>
                         <div className="mt-1.5 h-1.5 w-full overflow-hidden border border-[#111111] bg-white">
                           <div style={{ width: `${pct}%` }} className="h-full bg-[#111111]" />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="mb-1.5 text-[10px] font-extrabold tracking-wider text-[#2b56a3] uppercase">
+                  Studio Lab
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {LAB_THEME_ORDER.map((id) => {
+                    const cleared = getPackClearedCount(id, progress.records);
+                    const total = PACK_LEVELS[id].length;
+                    const pct = Math.round((cleared / total) * 100);
+                    return (
+                      <div key={id} className="border border-[#111111] bg-[#f5f0e2] p-2">
+                        <div className="flex items-center justify-between gap-1">
+                          <div className="flex min-w-0 items-center gap-1.5">
+                            <span
+                              style={{ backgroundColor: PACK_SWATCH_BG[THEMES[id].visualBase] }}
+                              className="h-3 w-3 shrink-0 border border-[#111111]"
+                            />
+                            <span className="font-display truncate text-[11px] font-extrabold uppercase">
+                              {THEMES[id].shortName}
+                            </span>
+                          </div>
+                          <span className="font-mono-num text-[10px] font-bold">
+                            {cleared}/{total}
+                          </span>
+                        </div>
+                        <div className="mt-1.5 h-1.5 w-full overflow-hidden border border-[#111111] bg-white">
+                          <div style={{ width: `${pct}%` }} className="h-full bg-[#2b56a3]" />
                         </div>
                       </div>
                     );

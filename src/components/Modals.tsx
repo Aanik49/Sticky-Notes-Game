@@ -3,8 +3,10 @@ import {
   AlertTriangle,
   ArrowRight,
   Award,
+  BookOpen,
   Calendar,
   CheckCircle2,
+  FlaskConical,
   Home,
   Infinity as InfinityIcon,
   Layers,
@@ -27,19 +29,29 @@ import { sound } from '../game/audio';
 import {
   formatDailyDateLabel,
   getHighestUnlockedPack,
+  getModeForPack,
   getPackUnlockRequirement,
+  getThemesForMode,
   getTodayDateKey,
   isPackUnlocked,
+  isProgressionPack,
   PACK_LEVELS,
-  THEME_ORDER,
   THEMES,
 } from '../game/levels';
 import { ACHIEVEMENTS, PAPER_STYLES } from '../game/mastery';
-import { LevelDef, MAX_BUMPS, PaperStyleId, SavedProgress, ThemeId } from '../game/types';
+import {
+  ClassicThemeId,
+  GameMode,
+  LevelDef,
+  MAX_BUMPS,
+  PaperStyleId,
+  SavedProgress,
+  ThemeId,
+} from '../game/types';
 import { GameIcon } from './GameIcon';
 import { BauhausPosterStamp, StudioArchiveTab } from './StudioArchiveModal';
 
-const PACK_GLOW_RGB: Record<ThemeId, string> = {
+const PACK_GLOW_RGB: Record<ClassicThemeId, string> = {
   fridge: '214, 48, 42',
   cork: '228, 180, 60',
   drafting: '45, 212, 191',
@@ -48,7 +60,7 @@ const PACK_GLOW_RGB: Record<ThemeId, string> = {
   gallery: '43, 86, 163',
 };
 
-const PACK_SWATCH_BG: Record<ThemeId, string> = {
+const PACK_SWATCH_BG: Record<ClassicThemeId, string> = {
   fridge: '#f5f0e2',
   cork: '#e4b43c',
   drafting: '#1e6b64',
@@ -120,7 +132,10 @@ export const LevelPickerModal: React.FC<LevelPickerModalProps> = ({
   onSelectEndless,
   onClose,
 }) => {
-  const [viewingPack, setViewingPack] = useState<ThemeId>(initialPack ?? currentLevel.packId);
+  const startPack = initialPack ?? currentLevel.packId;
+  const [viewingMode, setViewingMode] = useState<GameMode>(() => getModeForPack(startPack));
+  const [viewingPack, setViewingPack] = useState<ThemeId>(startPack);
+  const modePacks = getThemesForMode(viewingMode);
   const packTheme = THEMES[viewingPack];
   const levels = PACK_LEVELS[viewingPack];
   const todayKey = getTodayDateKey();
@@ -128,6 +143,13 @@ export const LevelPickerModal: React.FC<LevelPickerModalProps> = ({
   const clearedCount = levels.filter((l) => Boolean(progress.records[l.id])).length;
   const viewingUnlocked = isPackUnlocked(viewingPack, progress.records);
   const unlockReq = getPackUnlockRequirement(viewingPack, progress.records);
+
+  const handleSwitchMode = (nextMode: GameMode) => {
+    if (nextMode === viewingMode) return;
+    sound.playClick();
+    setViewingMode(nextMode);
+    setViewingPack(getThemesForMode(nextMode)[0]);
+  };
 
   return (
     <div
@@ -138,7 +160,7 @@ export const LevelPickerModal: React.FC<LevelPickerModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="flex max-h-[calc(100dvh-24px)] w-full max-w-md flex-col overflow-hidden border-[3px] border-[#111111] bg-[#f5f0e2] text-[#111111] shadow-[8px_8px_0_#111111] sm:max-h-[min(86dvh,620px)] sm:max-w-lg"
+        className="flex max-h-[calc(100dvh-24px)] w-full max-w-md flex-col overflow-hidden border-[3px] border-[#111111] bg-[#f5f0e2] text-[#111111] shadow-[8px_8px_0_#111111] sm:max-h-[min(86dvh,640px)] sm:max-w-lg"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Bauhaus Primary Color Rule */}
@@ -148,7 +170,7 @@ export const LevelPickerModal: React.FC<LevelPickerModalProps> = ({
           <div className="bg-[#2b56a3]" />
         </div>
 
-        {/* Header with Game Icon (Pinned, never clipped) */}
+        {/* Header with Game Icon */}
         <div className="flex shrink-0 items-center justify-between border-b-2 border-[#111111] px-4 py-3 sm:px-5 sm:py-3.5">
           <div className="flex min-w-0 items-center gap-2.5">
             <GameIcon className="h-8 w-8 shrink-0 shadow-[2px_2px_0_#111111]" />
@@ -172,14 +194,43 @@ export const LevelPickerModal: React.FC<LevelPickerModalProps> = ({
           </button>
         </div>
 
-        {/* Theme Pack Tabs (6 Packs, locked tabs still browsable, unlocked progression tabs glow & shine) */}
+        {/* Classic vs Studio Lab Mode Toggle */}
+        <div className="grid shrink-0 grid-cols-2 border-b-2 border-[#111111] bg-[#f5f0e2]">
+          <button
+            type="button"
+            onClick={() => handleSwitchMode('classic')}
+            className={`font-display flex cursor-pointer items-center justify-center gap-1.5 border-r-2 border-[#111111] py-2 text-xs font-black tracking-wider uppercase transition ${
+              viewingMode === 'classic'
+                ? 'bg-[#111111] text-[#e4b43c]'
+                : 'bg-transparent text-[#111111] hover:bg-white'
+            }`}
+          >
+            <Layers className="h-3.5 w-3.5" />
+            <span>Classic (6 × 15)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSwitchMode('lab')}
+            className={`font-display flex cursor-pointer items-center justify-center gap-1.5 py-2 text-xs font-black tracking-wider uppercase transition ${
+              viewingMode === 'lab'
+                ? 'bg-[#2b56a3] text-[#faf6ea]'
+                : 'bg-transparent text-[#111111] hover:bg-white'
+            }`}
+          >
+            <FlaskConical className="h-3.5 w-3.5" />
+            <span>Studio Lab (6 × 15)</span>
+          </button>
+        </div>
+
+        {/* Theme Pack Tabs (6 Packs for Active Mode) */}
         <div className="flex shrink-0 gap-1.5 overflow-x-auto border-b-2 border-[#111111] bg-[#ece5d2] px-4 py-2.5 sm:px-5">
-          {THEME_ORDER.map((id) => {
+          {modePacks.map((id) => {
             const t = THEMES[id];
+            const base = t.visualBase;
             const active = id === viewingPack;
             const packLevels = PACK_LEVELS[id];
             const unlocked = isPackUnlocked(id, progress.records);
-            const showShine = unlocked && id !== 'fridge';
+            const showShine = unlocked && isProgressionPack(id);
             const isJustUnlocked = showShine && progress.newlyUnlockedPacks.includes(id);
             const packStars = packLevels.reduce(
               (acc, l) => acc + (progress.records[l.id]?.stars ?? 0),
@@ -196,7 +247,7 @@ export const LevelPickerModal: React.FC<LevelPickerModalProps> = ({
                 }}
                 style={
                   showShine
-                    ? ({ '--pack-glow-rgb': PACK_GLOW_RGB[id] } as React.CSSProperties)
+                    ? ({ '--pack-glow-rgb': PACK_GLOW_RGB[base] } as React.CSSProperties)
                     : undefined
                 }
                 className={`flex shrink-0 cursor-pointer items-center gap-1.5 border-2 border-[#111111] px-2.5 py-1.5 text-xs font-extrabold uppercase transition whitespace-nowrap ${
@@ -212,7 +263,7 @@ export const LevelPickerModal: React.FC<LevelPickerModalProps> = ({
                 {unlocked ? (
                   <span
                     aria-hidden="true"
-                    style={{ backgroundColor: PACK_SWATCH_BG[id] }}
+                    style={{ backgroundColor: PACK_SWATCH_BG[base] }}
                     className={`h-3 w-3 border ${active ? 'border-[#faf6ea]' : 'border-[#111111]'}`}
                   />
                 ) : (
@@ -359,7 +410,7 @@ export const LevelPickerModal: React.FC<LevelPickerModalProps> = ({
               sound.playClick();
               const endlessTheme = viewingUnlocked
                 ? viewingPack
-                : getHighestUnlockedPack(progress.records);
+                : getHighestUnlockedPack(progress.records, viewingMode);
               onSelectEndless(endlessTheme);
             }}
             className="font-display flex cursor-pointer items-center gap-1.5 border-2 border-[#111111] bg-[#2b56a3] px-3 py-1.5 text-xs font-extrabold text-[#faf6ea] uppercase shadow-[2px_2px_0_#111111] transition hover:-translate-y-0.5 hover:bg-[#244a8e] whitespace-nowrap"
@@ -384,6 +435,7 @@ interface PauseModalProps {
   onRestart: () => void;
   onOpenLevels: () => void;
   onOpenArchive: (tab?: StudioArchiveTab) => void;
+  onOpenTutorial: () => void;
   onToggleMute: () => void;
   onToggleMusic: () => void;
   onTitleScreen: () => void;
@@ -397,6 +449,7 @@ export const PauseModal: React.FC<PauseModalProps> = ({
   onRestart,
   onOpenLevels,
   onOpenArchive,
+  onOpenTutorial,
   onToggleMute,
   onToggleMusic,
   onTitleScreen,
@@ -441,7 +494,7 @@ export const PauseModal: React.FC<PauseModalProps> = ({
             <button
               type="button"
               onClick={onRestart}
-              className="font-display flex w-full cursor-pointer items-center justify-center gap-2 border-2 border-[#111111] bg-[#faf6ea] py-3 text-sm font-extrabold uppercase shadow-[3px_3px_0_#111111] transition hover:bg-white"
+              className="font-display flex w-full cursor-pointer items-center justify-center gap-2 border-2 border-[#111111] bg-[#faf6ea] py-2.5 text-sm font-extrabold uppercase shadow-[3px_3px_0_#111111] transition hover:bg-white"
             >
               <RotateCcw className="h-4 w-4" />
               <span>Restart Wall</span>
@@ -450,20 +503,31 @@ export const PauseModal: React.FC<PauseModalProps> = ({
             <button
               type="button"
               onClick={onOpenLevels}
-              className="font-display flex w-full cursor-pointer items-center justify-center gap-2 border-2 border-[#111111] bg-[#faf6ea] py-3 text-sm font-extrabold uppercase shadow-[3px_3px_0_#111111] transition hover:bg-white"
+              className="font-display flex w-full cursor-pointer items-center justify-center gap-2 border-2 border-[#111111] bg-[#faf6ea] py-2.5 text-sm font-extrabold uppercase shadow-[3px_3px_0_#111111] transition hover:bg-white"
             >
               <Layers className="h-4 w-4" />
               <span>Switch Pack or Wall</span>
             </button>
 
-            <button
-              type="button"
-              onClick={() => onOpenArchive('styles')}
-              className="font-display flex w-full cursor-pointer items-center justify-center gap-2 border-2 border-[#111111] bg-[#e4b43c] py-3 text-sm font-extrabold uppercase shadow-[3px_3px_0_#111111] transition hover:bg-[#ecc252]"
-            >
-              <Award className="h-4 w-4" />
-              <span>Gallery, Mastery & Styles</span>
-            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => onOpenArchive('styles')}
+                className="font-display flex cursor-pointer items-center justify-center gap-1.5 border-2 border-[#111111] bg-[#e4b43c] py-2.5 text-xs font-extrabold uppercase shadow-[3px_3px_0_#111111] transition hover:bg-[#ecc252]"
+              >
+                <Award className="h-4 w-4 shrink-0" />
+                <span>Archive</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={onOpenTutorial}
+                className="font-display flex cursor-pointer items-center justify-center gap-1.5 border-2 border-[#111111] bg-[#2b56a3] py-2.5 text-xs font-extrabold text-[#faf6ea] uppercase shadow-[3px_3px_0_#111111] transition hover:bg-[#244a8e]"
+              >
+                <BookOpen className="h-4 w-4 shrink-0" />
+                <span>Mode Rules</span>
+              </button>
+            </div>
 
             <div className="mt-1 grid grid-cols-3 gap-2">
               <button
@@ -632,13 +696,15 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
           {newlyUnlockedPack && (
             <div
               style={
-                { '--pack-glow-rgb': PACK_GLOW_RGB[newlyUnlockedPack] } as React.CSSProperties
+                {
+                  '--pack-glow-rgb': PACK_GLOW_RGB[THEMES[newlyUnlockedPack].visualBase],
+                } as React.CSSProperties
               }
               className="pack-unlocked-shine pack-just-unlocked mb-3 flex items-center gap-3 border-2 border-[#111111] bg-[#e4b43c] px-3 py-2 text-left text-[#111111]"
             >
               <span
                 aria-hidden="true"
-                style={{ backgroundColor: PACK_SWATCH_BG[newlyUnlockedPack] }}
+                style={{ backgroundColor: PACK_SWATCH_BG[THEMES[newlyUnlockedPack].visualBase] }}
                 className="relative z-10 h-8 w-8 shrink-0 border-2 border-[#111111]"
               />
               <div className="relative z-10 min-w-0 flex-1">
@@ -647,7 +713,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                   <span>New Category Unlocked</span>
                 </div>
                 <div className="font-display truncate text-sm font-black uppercase">
-                  {THEMES[newlyUnlockedPack].name} · 18 Walls
+                  {THEMES[newlyUnlockedPack].name} · {PACK_LEVELS[newlyUnlockedPack].length} Walls
                 </div>
               </div>
               <Sparkles className="relative z-10 h-4 w-4 shrink-0" />

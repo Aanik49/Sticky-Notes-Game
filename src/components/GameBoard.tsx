@@ -1,5 +1,6 @@
 import React from 'react';
 import { PAPER_STYLES } from '../game/mastery';
+import { isNoteTapedLocked, TAPE_COLOR_META } from '../game/solver';
 import {
   ActiveNote,
   BlockerFeedback,
@@ -68,19 +69,36 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     return { x: 103, y: start.y };
   };
 
+  // Collect active Chain-Peel linked pairs for dashed ink connector lines
+  const linkedPairs: { linkId: string; a: ActiveNote; b: ActiveNote }[] = [];
+  const seenLinkIds = new Set<string>();
+  for (const n of notes) {
+    if (!n.linkId || seenLinkIds.has(n.linkId)) continue;
+    const partner = notes.find((other) => other.id !== n.id && other.linkId === n.linkId);
+    if (partner) {
+      seenLinkIds.add(n.linkId);
+      linkedPairs.push({ linkId: n.linkId, a: n, b: partner });
+    }
+  }
+
+  const base = theme.visualBase;
+
   const slotBorderClass =
-    theme.id === 'drafting'
+    base === 'drafting'
       ? 'border-[#f5f0e2]/25 bg-[#12423d]/35'
-      : theme.id === 'midnight'
+      : base === 'midnight'
         ? 'border-[#f5f0e2]/18 bg-[#0e1017]/40'
         : 'border-[#111111]/25 bg-black/[0.025]';
 
   const stampColorClass =
-    theme.id === 'drafting'
+    base === 'drafting'
       ? 'text-[#f5f0e2]/65'
-      : theme.id === 'midnight'
+      : base === 'midnight'
         ? 'text-[#e4b43c]/70'
         : 'text-[#111111]/60';
+
+  const linkStrokeColor =
+    base === 'midnight' || base === 'drafting' ? '#e4b43c' : '#111111';
 
   return (
     <div className="relative flex items-center justify-center">
@@ -113,11 +131,11 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         />
 
         {/* Subtle Architectural Scale Markings on Drafting / Atelier / Gallery */}
-        {(theme.id === 'drafting' || theme.id === 'atelier' || theme.id === 'gallery') && (
+        {(base === 'drafting' || base === 'atelier' || base === 'gallery') && (
           <div
             aria-hidden="true"
             className={`font-mono-num pointer-events-none absolute top-1 left-4 right-4 flex justify-between text-[9px] font-bold tracking-widest ${
-              theme.id === 'drafting' ? 'text-[#f5f0e2]/60' : 'text-[#111111]/50'
+              base === 'drafting' ? 'text-[#f5f0e2]/60' : 'text-[#111111]/50'
             }`}
           >
             {Array.from({ length: cols + 1 }).map((_, idx) => (
@@ -180,6 +198,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
               blockerFeedback !== null &&
               !blockerFeedback.isObstacle &&
               blockerFeedback.blockerId === note.id;
+            const tapedLocked = isNoteTapedLocked(note, notes);
 
             return (
               <StickyNote
@@ -194,15 +213,70 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                 paperStyle={paperStyle}
                 spawnIndex={idx}
                 animateSpawn={animateSpawn}
+                isTapedLocked={tapedLocked}
                 bumpKey={isBumped ? blockerFeedback.timestamp : 0}
                 bumpDir={isBumped ? blockerFeedback.dir : undefined}
                 knockKey={isKnocked ? blockerFeedback.timestamp : 0}
                 isHinted={hint !== null && hint.noteId === note.id}
-                isFocused={focusedCell !== null && focusedCell.r === note.r && focusedCell.c === note.c}
+                isFocused={
+                  focusedCell !== null && focusedCell.r === note.r && focusedCell.c === note.c
+                }
                 onTap={onTapNote}
               />
             );
           })}
+
+          {/* STUDIO LAB 3: Crisp Dashed Ink Connector Lines for Chain-Peel Linked Pairs */}
+          {linkedPairs.length > 0 && (
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+              className="pointer-events-none absolute inset-0 z-30 h-full w-full overflow-visible"
+            >
+              {linkedPairs.map(({ linkId, a, b }) => {
+                const pa = cellCenter(a.r, a.c);
+                const pb = cellCenter(b.r, b.c);
+                const midX = (pa.x + pb.x) / 2;
+                const midY = (pa.y + pb.y) / 2;
+                return (
+                  <g key={`link-${linkId}`}>
+                    {/* Crisp cream halo stroke underneath for legibility across any note color */}
+                    <line
+                      x1={pa.x}
+                      y1={pa.y}
+                      x2={pb.x}
+                      y2={pb.y}
+                      stroke="#faf6ea"
+                      strokeOpacity="0.82"
+                      strokeWidth="2.4"
+                      strokeDasharray="3.2 2.2"
+                    />
+                    {/* Bold Bauhaus dashed ink tether */}
+                    <line
+                      x1={pa.x}
+                      y1={pa.y}
+                      x2={pb.x}
+                      y2={pb.y}
+                      stroke={linkStrokeColor}
+                      strokeWidth="1.35"
+                      strokeDasharray="3.2 2.2"
+                    />
+                    {/* Midpoint Bauhaus square node */}
+                    <rect
+                      x={midX - 2.2}
+                      y={midY - 2.2}
+                      width="4.4"
+                      height="4.4"
+                      fill="#e4b43c"
+                      stroke="#111111"
+                      strokeWidth="0.9"
+                    />
+                  </g>
+                );
+              })}
+            </svg>
+          )}
 
           {/* Peeling-Out Flying Ghost Notes */}
           {peelingGhosts.map((ghost) => (
@@ -224,58 +298,67 @@ export const GameBoard: React.FC<GameBoardProps> = ({
             />
           ))}
 
-          {/* Sightline Vector Overlay: Blocked Collision Ray + Tier-2 Hint Clear Lane */}
+          {/* Sightline Vector Overlay: Blocked Collision Ray, Tape->Key Pointer, & Tier-2 Hint Lane */}
           <svg
             aria-hidden="true"
             viewBox="0 0 100 100"
             preserveAspectRatio="none"
             className="pointer-events-none absolute inset-0 z-40 h-full w-full overflow-visible"
           >
-            {blockerFeedback && (() => {
-              const start = cellCenter(blockerFeedback.tappedR, blockerFeedback.tappedC);
-              const end = cellCenter(blockerFeedback.blockerR, blockerFeedback.blockerC);
-              return (
-                <g key={blockerFeedback.timestamp} className="sightline-blocked">
-                  <line
-                    x1={start.x}
-                    y1={start.y}
-                    x2={end.x}
-                    y2={end.y}
-                    stroke="#d6302a"
-                    strokeWidth="2.4"
-                    strokeDasharray="3.2 2.2"
-                  />
-                  <rect
-                    x={end.x - 3}
-                    y={end.y - 3}
-                    width="6"
-                    height="6"
-                    fill="#d6302a"
-                    stroke="#111111"
-                    strokeWidth="1"
-                  />
-                </g>
-              );
-            })()}
+            {blockerFeedback &&
+              (() => {
+                const start = cellCenter(blockerFeedback.tappedR, blockerFeedback.tappedC);
+                const end = cellCenter(blockerFeedback.blockerR, blockerFeedback.blockerC);
+                const rayColor =
+                  blockerFeedback.reason === 'taped' && blockerFeedback.tapeColor
+                    ? TAPE_COLOR_META[blockerFeedback.tapeColor].hex
+                    : '#d6302a';
 
-            {hint && hint.tier === 2 && hintedNote && (() => {
-              const start = cellCenter(hintedNote.r, hintedNote.c);
-              const end = getEdgeEndpoint(hintedNote.r, hintedNote.c, hintedNote.dir);
-              return (
-                <g>
-                  <line
-                    x1={start.x}
-                    y1={start.y}
-                    x2={end.x}
-                    y2={end.y}
-                    stroke="#10b981"
-                    strokeWidth="2.4"
-                    strokeDasharray="3.2 2.2"
-                    opacity="0.92"
-                  />
-                </g>
-              );
-            })()}
+                return (
+                  <g key={blockerFeedback.timestamp} className="sightline-blocked">
+                    <line
+                      x1={start.x}
+                      y1={start.y}
+                      x2={end.x}
+                      y2={end.y}
+                      stroke={rayColor}
+                      strokeWidth="2.4"
+                      strokeDasharray="3.2 2.2"
+                    />
+                    <rect
+                      x={end.x - 3.2}
+                      y={end.y - 3.2}
+                      width="6.4"
+                      height="6.4"
+                      fill={rayColor}
+                      stroke="#111111"
+                      strokeWidth="1"
+                    />
+                  </g>
+                );
+              })()}
+
+            {hint &&
+              hint.tier === 2 &&
+              hintedNote &&
+              (() => {
+                const start = cellCenter(hintedNote.r, hintedNote.c);
+                const end = getEdgeEndpoint(hintedNote.r, hintedNote.c, hintedNote.dir);
+                return (
+                  <g>
+                    <line
+                      x1={start.x}
+                      y1={start.y}
+                      x2={end.x}
+                      y2={end.y}
+                      stroke="#10b981"
+                      strokeWidth="2.4"
+                      strokeDasharray="3.2 2.2"
+                      opacity="0.92"
+                    />
+                  </g>
+                );
+              })()}
           </svg>
         </div>
       </div>

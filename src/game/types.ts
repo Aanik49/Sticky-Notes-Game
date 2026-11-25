@@ -4,7 +4,21 @@ export type PaperColor = 'canary' | 'coral' | 'sky' | 'mint' | 'apricot' | 'lave
 
 export type PaperStyleId = 'primary' | 'mono' | 'blueprint' | 'risograph' | 'goldfoil';
 
-export type ThemeId = 'fridge' | 'cork' | 'drafting' | 'midnight' | 'atelier' | 'gallery';
+export type GameMode = 'classic' | 'lab';
+
+export type TapeColor = 'red' | 'blue' | 'gold';
+
+export type ClassicThemeId = 'fridge' | 'cork' | 'drafting' | 'midnight' | 'atelier' | 'gallery';
+
+export type LabThemeId =
+  | 'lab-tape'
+  | 'lab-pivot'
+  | 'lab-chain'
+  | 'lab-sync'
+  | 'lab-matrix'
+  | 'lab-master';
+
+export type ThemeId = ClassicThemeId | LabThemeId;
 
 export type GameScreen = 'TITLE_MENU' | 'PLAYING' | 'PAUSED' | 'VICTORY' | 'FAILED';
 
@@ -20,6 +34,14 @@ export interface NoteSpec {
     dir: Direction;
     color: PaperColor;
   };
+  /** Studio Lab: Locked by a Bauhaus tape strip until matching keyColor note is peeled */
+  tapeColor?: TapeColor;
+  /** Studio Lab: Key Note whose peel snaps off all matching tapeColor strips */
+  keyColor?: TapeColor;
+  /** Studio Lab: Corner-pinned note whose arrow rotates 90° clockwise after every valid peel */
+  pivot?: boolean;
+  /** Studio Lab: Chain-Peel pair ID ('A' | 'B' | 'C' | ...) — peels simultaneously with partner */
+  linkId?: string;
 }
 
 export interface ActiveNote {
@@ -33,6 +55,10 @@ export interface ActiveNote {
     dir: Direction;
     color: PaperColor;
   };
+  tapeColor?: TapeColor;
+  keyColor?: TapeColor;
+  pivot?: boolean;
+  linkId?: string;
   /** Visual stamp micro-mark (optional subtle personality) */
   mark?: 'dot' | 'line' | 'check' | 'star';
 }
@@ -54,6 +80,7 @@ export interface DailyMission {
 
 export interface LevelDef {
   id: string;
+  mode: GameMode;
   packId: ThemeId;
   indexInPack: number;
   title: string;
@@ -71,10 +98,13 @@ export interface LevelDef {
 
 export interface ThemeMeta {
   id: ThemeId;
+  mode: GameMode;
+  visualBase: ClassicThemeId;
   name: string;
   shortName: string;
   surfaceLabel: string;
   tagline: string;
+  mechanicBadge?: string;
   worldClass: string;
   boardClass: string;
   isDark: boolean;
@@ -85,10 +115,10 @@ export interface ThemeMeta {
 }
 
 export interface UndoEntry {
-  /** Snapshot of the note before peel */
-  note: ActiveNote;
-  /** If true, peeling revealed an under-layer; undo puts top layer back on top */
-  wasStackedTop: boolean;
+  /** Exact board note snapshot prior to the peel (restores pivots, chain pairs, stacks & keys cleanly) */
+  prevNotes: ActiveNote[];
+  /** Number of sheets peeled in that step (1 for normal, 2 for chain-peel) */
+  peeledCount: number;
 }
 
 export interface BlockerFeedback {
@@ -100,6 +130,8 @@ export interface BlockerFeedback {
   blockerR: number;
   blockerC: number;
   isObstacle: boolean;
+  reason?: 'blocked' | 'taped' | 'partner_blocked';
+  tapeColor?: TapeColor;
   timestamp: number;
 }
 
@@ -133,6 +165,7 @@ export interface SavedProgress {
   muted: boolean;
   musicMuted: boolean;
   timeAttackEnabled: boolean;
+  lastMode: GameMode;
   lastTheme: ThemeId;
   paperStyle: PaperStyleId;
   endlessBestStreak: number;
@@ -140,6 +173,8 @@ export interface SavedProgress {
   newlyUnlockedPacks: ThemeId[];
   stats: LifetimeStats;
   unlockedAchievements: string[];
+  seenClassicTutorial: boolean;
+  seenLabTutorial: boolean;
 }
 
 export interface ParticleBurstRequest {

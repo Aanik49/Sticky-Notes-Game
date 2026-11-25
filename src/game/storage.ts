@@ -1,4 +1,5 @@
 import {
+  GameMode,
   LevelRecord,
   LifetimeStats,
   PaperStyleId,
@@ -16,6 +17,21 @@ const VALID_PAPER_STYLES: PaperStyleId[] = [
   'goldfoil',
 ];
 
+const VALID_THEMES: ThemeId[] = [
+  'fridge',
+  'cork',
+  'drafting',
+  'midnight',
+  'atelier',
+  'gallery',
+  'lab-tape',
+  'lab-pivot',
+  'lab-chain',
+  'lab-sync',
+  'lab-matrix',
+  'lab-master',
+];
+
 const DEFAULT_PACK_CLEARS: Record<ThemeId, number> = {
   fridge: 0,
   cork: 0,
@@ -23,6 +39,12 @@ const DEFAULT_PACK_CLEARS: Record<ThemeId, number> = {
   midnight: 0,
   atelier: 0,
   gallery: 0,
+  'lab-tape': 0,
+  'lab-pivot': 0,
+  'lab-chain': 0,
+  'lab-sync': 0,
+  'lab-matrix': 0,
+  'lab-master': 0,
 };
 
 const DEFAULT_STATS: LifetimeStats = {
@@ -42,6 +64,7 @@ const DEFAULT_PROGRESS: SavedProgress = {
   muted: false,
   musicMuted: false,
   timeAttackEnabled: false,
+  lastMode: 'classic',
   lastTheme: 'fridge',
   paperStyle: 'primary',
   endlessBestStreak: 0,
@@ -49,6 +72,8 @@ const DEFAULT_PROGRESS: SavedProgress = {
   newlyUnlockedPacks: [],
   stats: { ...DEFAULT_STATS, packClearsCount: { ...DEFAULT_PACK_CLEARS } },
   unlockedAchievements: [],
+  seenClassicTutorial: false,
+  seenLabTutorial: false,
 };
 
 function sanitizeStats(
@@ -63,16 +88,21 @@ function sanitizeStats(
     midnight: raw?.packClearsCount?.midnight ?? 0,
     atelier: raw?.packClearsCount?.atelier ?? 0,
     gallery: raw?.packClearsCount?.gallery ?? 0,
+    'lab-tape': raw?.packClearsCount?.['lab-tape'] ?? 0,
+    'lab-pivot': raw?.packClearsCount?.['lab-pivot'] ?? 0,
+    'lab-chain': raw?.packClearsCount?.['lab-chain'] ?? 0,
+    'lab-sync': raw?.packClearsCount?.['lab-sync'] ?? 0,
+    'lab-matrix': raw?.packClearsCount?.['lab-matrix'] ?? 0,
+    'lab-master': raw?.packClearsCount?.['lab-master'] ?? 0,
   };
 
-  // Backfill from existing records when upgrading from earlier saves
   const recEntries = Object.entries(records);
   const dailyVals = Object.values(dailyRecords);
   if (!raw) {
     for (const [id] of recEntries) {
-      const prefix = id.split('-')[0] as ThemeId;
-      if (prefix in packClears) {
-        packClears[prefix] += 1;
+      const matched = VALID_THEMES.find((t) => id.startsWith(`${t}-`));
+      if (matched) {
+        packClears[matched] += 1;
       }
     }
   }
@@ -109,6 +139,12 @@ export function loadProgress(): SavedProgress {
     const paperStyle: PaperStyleId =
       candidateStyle && VALID_PAPER_STYLES.includes(candidateStyle) ? candidateStyle : 'primary';
 
+    const candidateTheme = parsed.lastTheme as ThemeId | undefined;
+    const lastTheme: ThemeId =
+      candidateTheme && VALID_THEMES.includes(candidateTheme) ? candidateTheme : 'fridge';
+
+    const lastMode: GameMode = parsed.lastMode === 'lab' ? 'lab' : 'classic';
+
     return {
       records,
       dailyRecords,
@@ -117,17 +153,22 @@ export function loadProgress(): SavedProgress {
       muted: Boolean(parsed.muted),
       musicMuted: Boolean(parsed.musicMuted),
       timeAttackEnabled: Boolean(parsed.timeAttackEnabled),
-      lastTheme: (parsed.lastTheme as ThemeId) ?? 'fridge',
+      lastMode,
+      lastTheme,
       paperStyle,
       endlessBestStreak: parsed.endlessBestStreak ?? 0,
       endlessCurrentLevel: Math.max(1, parsed.endlessCurrentLevel ?? 1),
       newlyUnlockedPacks: Array.isArray(parsed.newlyUnlockedPacks)
-        ? (parsed.newlyUnlockedPacks as ThemeId[])
+        ? (parsed.newlyUnlockedPacks.filter((id): id is ThemeId =>
+            VALID_THEMES.includes(id as ThemeId)
+          ))
         : [],
       stats: sanitizeStats(parsed.stats, records, dailyRecords),
       unlockedAchievements: Array.isArray(parsed.unlockedAchievements)
         ? parsed.unlockedAchievements.filter((id): id is string => typeof id === 'string')
         : [],
+      seenClassicTutorial: Boolean(parsed.seenClassicTutorial),
+      seenLabTutorial: Boolean(parsed.seenLabTutorial),
     };
   } catch {
     return {

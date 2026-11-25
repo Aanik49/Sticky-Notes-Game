@@ -424,33 +424,36 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     id: 'clear-fridge',
     code: 'NO.10',
     title: 'Kitchen Folio',
-    description: 'Clear all 18 walls in the Fridge pack.',
+    description: 'Clear all 15 walls in the Fridge pack.',
     motif: 'split-diamond',
     evaluate: (p) => {
       const cleared = getPackClearedCountSafe('fridge', p);
-      return { unlocked: isPackCompleted('fridge', p.records), current: cleared, target: 18 };
+      const target = PACK_LEVELS.fridge.length;
+      return { unlocked: isPackCompleted('fridge', p.records), current: cleared, target };
     },
   },
   {
     id: 'clear-atelier',
     code: 'NO.11',
     title: 'Atelier Proof',
-    description: 'Clear all 18 walls in the Vermilion Atelier pack.',
+    description: 'Clear all 15 walls in the Vermilion Atelier pack.',
     motif: 'atelier-press',
     evaluate: (p) => {
       const cleared = getPackClearedCountSafe('atelier', p);
-      return { unlocked: isPackCompleted('atelier', p.records), current: cleared, target: 18 };
+      const target = PACK_LEVELS.atelier.length;
+      return { unlocked: isPackCompleted('atelier', p.records), current: cleared, target };
     },
   },
   {
     id: 'clear-gallery',
     code: 'NO.12',
     title: 'Gallery Curator',
-    description: 'Clear all 18 walls in the Cobalt Gallery pack.',
+    description: 'Clear all 15 walls in the Cobalt Gallery pack.',
     motif: 'gallery-crown',
     evaluate: (p) => {
       const cleared = getPackClearedCountSafe('gallery', p);
-      return { unlocked: isPackCompleted('gallery', p.records), current: cleared, target: 18 };
+      const target = PACK_LEVELS.gallery.length;
+      return { unlocked: isPackCompleted('gallery', p.records), current: cleared, target };
     },
   },
 ];
