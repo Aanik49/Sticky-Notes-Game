@@ -211,6 +211,17 @@ export default function App() {
     saveProgress(progress);
   }, [progress]);
 
+  // Automatically show the mode instruction panel on first entry into Classic or Studio Lab
+  // before the player starts their first level.
+  useEffect(() => {
+    if (showSplash || screen !== 'TITLE_MENU') return;
+    if (selectedMode === 'classic' && !seenTutorialRef.current.classic) {
+      setActiveTutorialMode('classic');
+    } else if (selectedMode === 'lab' && !seenTutorialRef.current.lab) {
+      setActiveTutorialMode('lab');
+    }
+  }, [showSplash, screen, selectedMode]);
+
   // Switch background music track smoothly between Home & Gameplay
   useEffect(() => {
     sound.setMusicTrack(screen === 'TITLE_MENU' ? 'home' : 'gameplay');
@@ -1171,6 +1182,7 @@ export default function App() {
           onStartPack={handleStartPack}
           onOpenLevels={handleOpenLevelPicker}
           onOpenArchive={handleOpenArchive}
+          onOpenGuide={() => setActiveTutorialMode(selectedMode)}
           onStartDaily={handleStartDaily}
           onStartEndless={() => handleStartEndless()}
           onToggleMute={handleToggleMute}
@@ -1530,6 +1542,7 @@ export default function App() {
       {activeTutorialMode !== null && (
         <ModeTutorialModal
           mode={activeTutorialMode}
+          context={screen === 'TITLE_MENU' ? 'lobby' : 'level'}
           onDismiss={handleDismissTutorial}
         />
       )}

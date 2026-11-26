@@ -201,7 +201,7 @@ export const LevelPickerModal: React.FC<LevelPickerModalProps> = ({
             onClick={() => handleSwitchMode('classic')}
             className={`font-display flex cursor-pointer items-center justify-center gap-1.5 border-r-2 border-[#111111] py-2 text-xs font-black tracking-wider uppercase transition ${
               viewingMode === 'classic'
-                ? 'bg-[#111111] text-[#e4b43c]'
+                ? 'bg-[#e4b43c] text-[#111111]'
                 : 'bg-transparent text-[#111111] hover:bg-white'
             }`}
           >

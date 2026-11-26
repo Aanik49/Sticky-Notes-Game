@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Award,
   Calendar,
   CheckCircle2,
   FlaskConical,
+  HelpCircle,
   Infinity as InfinityIcon,
   Layers,
   Lock,
@@ -54,6 +55,7 @@ interface TitleScreenProps {
   onStartPack: (theme: ThemeId) => void;
   onOpenLevels: (packId?: ThemeId) => void;
   onOpenArchive: (tab?: StudioArchiveTab) => void;
+  onOpenGuide: () => void;
   onStartDaily: () => void;
   onStartEndless: () => void;
   onToggleMute: () => void;
@@ -133,6 +135,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   onStartPack,
   onOpenLevels,
   onOpenArchive,
+  onOpenGuide,
   onStartDaily,
   onStartEndless,
   onToggleMute,
@@ -154,6 +157,26 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   const [bumpedId, setBumpedId] = useState<{ id: string; dir: Direction; ts: number } | null>(null);
   const [demoResetting, setDemoResetting] = useState(false);
   const [footerTipIndex, setFooterTipIndex] = useState(0);
+  const [audioMenuOpen, setAudioMenuOpen] = useState(false);
+  const audioMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!audioMenuOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (audioMenuRef.current && !audioMenuRef.current.contains(e.target as Node)) {
+        setAudioMenuOpen(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setAudioMenuOpen(false);
+    };
+    window.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [audioMenuOpen]);
 
   // Switch demo wall immediately when toggling Classic <-> Studio Lab
   useEffect(() => {
@@ -245,28 +268,16 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
     <div
       className={`${theme.worldClass} relative flex h-dvh w-screen flex-col overflow-hidden transition-colors duration-500`}
     >
-      {/* Bauhaus Architectural Top Header Bar */}
-      <header className="z-20 flex shrink-0 items-center justify-between border-b-[3px] border-[#111111] px-4 py-2.5 sm:px-7 sm:py-3">
-        <div className="flex items-center gap-3">
+      {/* Bauhaus Architectural Top Header Bar (Clean & Uncluttered) */}
+      <header className="z-30 flex shrink-0 items-center justify-between gap-3 border-b-[3px] border-[#111111] px-4 py-2.5 sm:px-7 sm:py-3">
+        <div className="flex min-w-0 items-center gap-2.5">
           <GameIcon className="h-9 w-9 shrink-0 shadow-[2px_2px_0_#111111] sm:h-10 sm:w-10" />
-          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs font-bold sm:text-sm">
-            <span className="font-mono-num flex items-center gap-1">
-              <Star className="h-4 w-4 fill-[#e4b43c] text-[#111111]" />
+          <span className="font-mono-num flex items-center gap-1.5 whitespace-nowrap text-xs font-extrabold sm:text-sm">
+            <Star className="h-4 w-4 shrink-0 fill-[#e4b43c] text-[#111111]" />
+            <span>
               {totalEarnedStars}/{totalPossibleStars}
             </span>
-            {progress.dailyStreak > 0 && (
-              <>
-                <span aria-hidden="true">·</span>
-                <span className="font-mono-num">Streak {progress.dailyStreak}</span>
-              </>
-            )}
-            {progress.endlessBestStreak > 0 && (
-              <>
-                <span aria-hidden="true">·</span>
-                <span className="font-mono-num">Endless {progress.endlessBestStreak}</span>
-              </>
-            )}
-          </div>
+          </span>
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -296,31 +307,79 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             <Layers className="h-5 w-5" />
           </button>
 
-          <button
-            type="button"
-            onClick={onToggleMusic}
-            aria-label={musicMuted ? 'Unmute background music' : 'Mute background music'}
-            title={musicMuted ? 'Music Off' : 'Music On'}
-            className={`${headerBtnClass} relative`}
-          >
-            <Music className={`h-5 w-5 ${musicMuted ? 'text-[#d6302a]' : ''}`} />
-            {musicMuted && (
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute h-[2.5px] w-6 rotate-45 bg-[#d6302a]"
-              />
-            )}
-          </button>
+          {/* Compact Audio Popover (Sound FX & Music) */}
+          <div ref={audioMenuRef} className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                sound.playClick();
+                setAudioMenuOpen((prev) => !prev);
+              }}
+              aria-expanded={audioMenuOpen}
+              aria-haspopup="menu"
+              aria-label="Audio settings: Sound and Music"
+              title="Sound & Music"
+              className={`${headerBtnClass} ${audioMenuOpen ? 'bg-[#e4b43c]' : ''}`}
+            >
+              {muted && musicMuted ? (
+                <VolumeX className="h-5 w-5 text-[#d6302a]" />
+              ) : (
+                <Volume2 className="h-5 w-5" />
+              )}
+            </button>
 
-          <button
-            type="button"
-            onClick={onToggleMute}
-            aria-label={muted ? 'Unmute sound effects' : 'Mute sound effects'}
-            title={muted ? 'Sound Off' : 'Sound On'}
-            className={headerBtnClass}
-          >
-            {muted ? <VolumeX className="h-5 w-5 text-[#d6302a]" /> : <Volume2 className="h-5 w-5" />}
-          </button>
+            {audioMenuOpen && (
+              <div
+                role="menu"
+                aria-label="Audio controls"
+                className="combo-pop absolute top-full right-0 z-40 mt-2 flex w-44 flex-col border-[3px] border-[#111111] bg-[#f5f0e2] text-[#111111] shadow-[5px_5px_0_#111111]"
+              >
+                <button
+                  type="button"
+                  role="menuitemcheckbox"
+                  aria-checked={!muted}
+                  onClick={onToggleMute}
+                  className="flex cursor-pointer items-center justify-between border-b-2 border-[#111111] px-3 py-2.5 text-xs font-extrabold uppercase transition hover:bg-white"
+                >
+                  <span className="flex items-center gap-2">
+                    {muted ? (
+                      <VolumeX className="h-4 w-4 text-[#d6302a]" />
+                    ) : (
+                      <Volume2 className="h-4 w-4" />
+                    )}
+                    Sound FX
+                  </span>
+                  <span
+                    className={`font-mono-num border border-[#111111] px-1.5 py-0.5 text-[10px] font-black ${
+                      muted ? 'bg-[#d6302a] text-[#faf6ea]' : 'bg-[#e4b43c] text-[#111111]'
+                    }`}
+                  >
+                    {muted ? 'OFF' : 'ON'}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  role="menuitemcheckbox"
+                  aria-checked={!musicMuted}
+                  onClick={onToggleMusic}
+                  className="flex cursor-pointer items-center justify-between px-3 py-2.5 text-xs font-extrabold uppercase transition hover:bg-white"
+                >
+                  <span className="flex items-center gap-2">
+                    <Music className={`h-4 w-4 ${musicMuted ? 'text-[#d6302a]' : ''}`} />
+                    Music
+                  </span>
+                  <span
+                    className={`font-mono-num border border-[#111111] px-1.5 py-0.5 text-[10px] font-black ${
+                      musicMuted ? 'bg-[#d6302a] text-[#faf6ea]' : 'bg-[#e4b43c] text-[#111111]'
+                    }`}
+                  >
+                    {musicMuted ? 'OFF' : 'ON'}
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -333,7 +392,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             viewBox="0 0 420 120"
             role="img"
             aria-label="Sticky Notes Puzzle"
-            className="-mt-3 mb-3.5 h-auto w-[264px] overflow-visible sm:-mt-4 sm:mb-4 sm:w-[340px] lg:w-[376px]"
+            className="-mt-6 mb-5 h-auto w-[264px] overflow-visible sm:-mt-7 sm:mb-6 sm:w-[340px] lg:w-[376px]"
           >
             <g transform="translate(8, 22)">
               <g className="lobby-note-left">
@@ -413,50 +472,63 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             </g>
           </svg>
 
-          {/* CLASSIC vs STUDIO LAB Mode Toggle Bar */}
-          <div
-            role="tablist"
-            aria-label="Game Mode"
-            className="mb-2.5 grid w-full grid-cols-2 border-2 border-[#111111] bg-[#f5f0e2] shadow-[3px_3px_0_#111111]"
-          >
-            <button
-              type="button"
-              role="tab"
-              aria-selected={selectedMode === 'classic'}
-              onClick={() => {
-                if (selectedMode !== 'classic') {
-                  sound.playClick();
-                  onSelectMode('classic');
-                }
-              }}
-              className={`font-display flex cursor-pointer items-center justify-center gap-1.5 border-r-2 border-[#111111] py-2 text-xs font-black tracking-wider uppercase transition sm:text-sm ${
-                selectedMode === 'classic'
-                  ? 'bg-[#111111] text-[#e4b43c]'
-                  : 'bg-[#f5f0e2] text-[#111111] hover:bg-white'
-              }`}
-            >
-              <Layers className="h-4 w-4 shrink-0" />
-              <span>Classic</span>
-            </button>
+          {/* CLASSIC vs STUDIO LAB Mode Toggle Bar (+ Contextual Mode Guide ?) */}
+          <div className="mb-2.5 flex w-full border-2 border-[#111111] bg-[#f5f0e2] shadow-[3px_3px_0_#111111]">
+            <div role="tablist" aria-label="Game Mode" className="grid flex-1 grid-cols-2">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={selectedMode === 'classic'}
+                onClick={() => {
+                  if (selectedMode !== 'classic') {
+                    sound.playClick();
+                    onSelectMode('classic');
+                  }
+                }}
+                className={`font-display flex cursor-pointer items-center justify-center gap-1.5 border-r-2 border-[#111111] py-2 text-xs font-black tracking-wider uppercase transition sm:text-sm ${
+                  selectedMode === 'classic'
+                    ? 'bg-[#e4b43c] text-[#111111]'
+                    : 'bg-[#f5f0e2] text-[#111111] hover:bg-white'
+                }`}
+              >
+                <Layers className="h-4 w-4 shrink-0" />
+                <span>Classic</span>
+              </button>
+
+              <button
+                type="button"
+                role="tab"
+                aria-selected={selectedMode === 'lab'}
+                onClick={() => {
+                  if (selectedMode !== 'lab') {
+                    sound.playClick();
+                    onSelectMode('lab');
+                  }
+                }}
+                className={`font-display flex cursor-pointer items-center justify-center gap-1.5 border-r-2 border-[#111111] py-2 text-xs font-black tracking-wider uppercase transition sm:text-sm ${
+                  selectedMode === 'lab'
+                    ? 'bg-[#2b56a3] text-[#faf6ea]'
+                    : 'bg-[#f5f0e2] text-[#111111] hover:bg-white'
+                }`}
+              >
+                <FlaskConical className="h-4 w-4 shrink-0" />
+                <span>Studio Lab</span>
+              </button>
+            </div>
 
             <button
               type="button"
-              role="tab"
-              aria-selected={selectedMode === 'lab'}
               onClick={() => {
-                if (selectedMode !== 'lab') {
-                  sound.playClick();
-                  onSelectMode('lab');
-                }
+                sound.playClick();
+                onOpenGuide();
               }}
-              className={`font-display flex cursor-pointer items-center justify-center gap-1.5 py-2 text-xs font-black tracking-wider uppercase transition sm:text-sm ${
-                selectedMode === 'lab'
-                  ? 'bg-[#2b56a3] text-[#faf6ea]'
-                  : 'bg-[#f5f0e2] text-[#111111] hover:bg-white'
-              }`}
+              aria-label={
+                selectedMode === 'lab' ? 'Open Studio Lab rules guide' : 'Open Classic Mode rules guide'
+              }
+              title={selectedMode === 'lab' ? 'Studio Lab Guide' : 'Classic Mode Guide'}
+              className="flex w-10 shrink-0 cursor-pointer items-center justify-center bg-[#f5f0e2] text-[#111111] transition hover:bg-white"
             >
-              <FlaskConical className="h-4 w-4 shrink-0" />
-              <span>Studio Lab</span>
+              <HelpCircle className="h-4 w-4" />
             </button>
           </div>
 
@@ -608,13 +680,13 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             <button
               type="button"
               onClick={() => onStartPack(selectedTheme)}
-              className={`play-btn-shine font-display mt-3 flex w-full cursor-pointer items-center justify-center gap-2.5 border-[3px] border-[#111111] px-6 py-3.5 text-lg font-black tracking-wider uppercase shadow-[5px_5px_0_#111111] transition hover:-translate-y-0.5 active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0_#111111] whitespace-nowrap ${PLAY_BUTTON_THEME[theme.visualBase]}`}
+              className={`play-btn-shine font-display mt-8 flex w-full cursor-pointer items-center justify-center gap-2.5 border-[3px] border-[#111111] px-6 py-3.5 text-lg font-black tracking-wider uppercase shadow-[5px_5px_0_#111111] transition hover:-translate-y-0.5 active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0_#111111] whitespace-nowrap sm:mt-9 ${PLAY_BUTTON_THEME[theme.visualBase]}`}
             >
               <Play className="relative z-10 h-5 w-5 fill-current" />
               <span className="relative z-10">Play {theme.shortName}</span>
             </button>
           ) : (
-            <div className="mt-3 w-full">
+            <div className="mt-8 w-full sm:mt-9">
               <button
                 type="button"
                 onClick={() => {
