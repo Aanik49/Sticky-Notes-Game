@@ -279,7 +279,9 @@ export type StampMotif =
   | 'clock-arc'
   | 'infinity-loop'
   | 'atelier-press'
-  | 'gallery-crown';
+  | 'gallery-crown'
+  | 'exhibition-triad'
+  | 'blitz-bolt';
 
 export interface AchievementDef {
   id: string;
@@ -456,6 +458,31 @@ export const ACHIEVEMENTS: AchievementDef[] = [
       return { unlocked: isPackCompleted('gallery', p.records), current: cleared, target };
     },
   },
+  {
+    id: 'weekly-exhibition',
+    code: 'NO.13',
+    title: 'Exhibition Laureate',
+    description: 'Complete all 3 stages of a Weekly Bauhaus Exhibition gauntlet.',
+    motif: 'exhibition-triad',
+    evaluate: (p) => {
+      const val = Object.keys(p.weeklyRecords ?? {}).length;
+      return { unlocked: val >= 1, current: Math.min(val, 1), target: 1 };
+    },
+  },
+  {
+    id: 'blitz-5',
+    code: 'NO.14',
+    title: 'Blitz Sprinter',
+    description: 'Clear 5 or more walls in a single 60-Second Blitz run.',
+    motif: 'blitz-bolt',
+    evaluate: (p) => {
+      const best = (p.blitzLeaderboard ?? []).reduce(
+        (max, r) => Math.max(max, r.wallsCleared),
+        0
+      );
+      return { unlocked: best >= 5, current: Math.min(best, 5), target: 5 };
+    },
+  },
 ];
 
 export function getCurrentlyUnlockedAchievementIds(progress: SavedProgress): string[] {
@@ -485,6 +512,8 @@ export interface MasterySummary {
   dailyStreak: number;
   dailyMissionsCompleted: number;
   endlessBestStreak: number;
+  weeklyExhibitionsCleared: number;
+  blitzBestWalls: number;
   favoritePackId: ThemeId | null;
   favoritePackName: string;
   favoritePackClears: number;
@@ -576,6 +605,11 @@ export function computeMasterySummary(progress: SavedProgress): MasterySummary {
     dailyStreak: progress.dailyStreak,
     dailyMissionsCompleted: Math.max(progress.stats.dailyMissionsCompleted, dailySeals),
     endlessBestStreak: progress.endlessBestStreak,
+    weeklyExhibitionsCleared: Object.keys(progress.weeklyRecords ?? {}).length,
+    blitzBestWalls: (progress.blitzLeaderboard ?? []).reduce(
+      (max, r) => Math.max(max, r.wallsCleared),
+      0
+    ),
     favoritePackId,
     favoritePackName: favoritePackId ? THEMES[favoritePackId].shortName : 'None yet',
     favoritePackClears,

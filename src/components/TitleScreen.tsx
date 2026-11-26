@@ -8,16 +8,20 @@ import {
   Infinity as InfinityIcon,
   Layers,
   Lock,
+  Medal,
   Music,
   Play,
   Sparkles,
   Star,
   Volume2,
   VolumeX,
+  Zap,
 } from 'lucide-react';
 import { sound } from '../game/audio';
 import {
   formatDailyDateLabel,
+  formatWeekLabel,
+  getCurrentWeekKey,
   getDailyMission,
   getPackClearedCount,
   getPackUnlockRequirement,
@@ -57,6 +61,8 @@ interface TitleScreenProps {
   onOpenArchive: (tab?: StudioArchiveTab) => void;
   onOpenGuide: () => void;
   onStartDaily: () => void;
+  onStartWeekly: () => void;
+  onStartBlitz: () => void;
   onStartEndless: () => void;
   onToggleMute: () => void;
   onToggleMusic: () => void;
@@ -137,6 +143,8 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   onOpenArchive,
   onOpenGuide,
   onStartDaily,
+  onStartWeekly,
+  onStartBlitz,
   onStartEndless,
   onToggleMute,
   onToggleMusic,
@@ -149,6 +157,13 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   const todayLabel = formatDailyDateLabel(todayKey);
   const todayMission = getDailyMission(todayKey);
   const todayDailyRecord = progress.dailyRecords[todayKey];
+  const weekKey = getCurrentWeekKey();
+  const weekLabel = formatWeekLabel(weekKey);
+  const weeklyRecord = progress.weeklyRecords?.[weekKey];
+  const blitzBestWalls = (progress.blitzLeaderboard ?? []).reduce(
+    (max, r) => Math.max(max, r.wallsCleared),
+    0
+  );
   const selectedUnlocked = isPackUnlocked(selectedTheme, progress.records);
   const selectedRequirement = getPackUnlockRequirement(selectedTheme, progress.records);
 
@@ -392,7 +407,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             viewBox="0 0 420 120"
             role="img"
             aria-label="Sticky Notes Puzzle"
-            className="-mt-6 mb-5 h-auto w-[264px] overflow-visible sm:-mt-7 sm:mb-6 sm:w-[340px] lg:w-[376px]"
+            className="-mt-10 mb-8 h-auto w-[264px] overflow-visible sm:-mt-12 sm:mb-9 sm:w-[340px] lg:w-[376px]"
           >
             <g transform="translate(8, 22)">
               <g className="lobby-note-left">
@@ -614,64 +629,80 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             })}
           </div>
 
-          {/* Daily Puzzle (with Daily Mission preview) + Endless Wall Row */}
-          <div className="mb-1.5 grid w-full grid-cols-5 gap-2">
+          {/* Special Modes Single-Row Icon Buttons: Daily, Weekly, 60s Blitz, Endless */}
+          <div className="mb-1 grid w-full grid-cols-4 gap-2">
+            {/* 1. Daily */}
             <button
               type="button"
               onClick={onStartDaily}
-              className={`col-span-3 flex cursor-pointer items-center justify-between gap-2 border-2 border-[#111111] px-3 py-2 text-left shadow-[3px_3px_0_#111111] transition hover:-translate-y-0.5 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none ${
+              aria-label={`Daily Wall (${todayLabel}): ${todayMission.label}`}
+              title={`Daily · ${todayLabel} — ${todayMission.label}`}
+              className={`relative flex cursor-pointer flex-col items-center justify-center gap-1 border-2 border-[#111111] px-1 py-2 shadow-[3px_3px_0_#111111] transition hover:-translate-y-0.5 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none sm:py-2.5 ${
                 todayDailyRecord
                   ? 'bg-[#e4b43c] text-[#111111]'
                   : 'bg-[#f5f0e2] text-[#111111] hover:bg-white'
               }`}
             >
-              <div className="flex min-w-0 items-center gap-2">
-                {todayDailyRecord?.dailyMissionCompleted ? (
-                  <DailyRewardIcon className="h-6 w-6 shrink-0" />
-                ) : todayDailyRecord ? (
-                  <CheckCircle2 className="h-5 w-5 shrink-0 text-[#111111]" />
-                ) : (
-                  <Calendar className="h-5 w-5 shrink-0 text-[#d6302a]" />
-                )}
-                <div className="min-w-0">
-                  <div className="font-display truncate text-xs font-extrabold tracking-tight uppercase sm:text-sm">
-                    Daily · {todayLabel}
-                  </div>
-                  <div className="truncate text-[11px] font-semibold opacity-80">
-                    {todayMission.label}
-                  </div>
-                </div>
-              </div>
-
-              {todayDailyRecord ? (
-                <div
-                  className="flex shrink-0 items-center gap-0.5"
-                  aria-label={`Completed with ${todayDailyRecord.stars} stars`}
-                >
-                  {[1, 2, 3].map((s) => (
-                    <Star
-                      key={s}
-                      className={`h-3.5 w-3.5 ${
-                        s <= todayDailyRecord.stars
-                          ? 'fill-[#111111] text-[#111111]'
-                          : 'opacity-25'
-                      }`}
-                    />
-                  ))}
-                </div>
+              {todayDailyRecord?.dailyMissionCompleted ? (
+                <DailyRewardIcon className="h-5 w-5 shrink-0" />
+              ) : todayDailyRecord ? (
+                <CheckCircle2 className="h-5 w-5 shrink-0 text-[#111111]" />
               ) : (
-                <span className="font-display shrink-0 text-xs font-extrabold uppercase">Go</span>
+                <Calendar className="h-5 w-5 shrink-0 text-[#d6302a]" />
               )}
+              <span className="font-display truncate text-[10px] leading-none font-extrabold tracking-tight uppercase sm:text-[11px]">
+                Daily
+              </span>
             </button>
 
+            {/* 2. Weekly */}
+            <button
+              type="button"
+              onClick={onStartWeekly}
+              aria-label={`Weekly Exhibition (${weekLabel}): 3-Wall Gauntlet`}
+              title={`Weekly · ${weekLabel} — ${weeklyRecord ? 'Exhibition Stamp Earned' : '3-Wall Gauntlet · 5 Bumps'}`}
+              className={`relative flex cursor-pointer flex-col items-center justify-center gap-1 border-2 border-[#111111] px-1 py-2 shadow-[3px_3px_0_#111111] transition hover:-translate-y-0.5 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none sm:py-2.5 ${
+                weeklyRecord
+                  ? 'bg-[#e4b43c] text-[#111111]'
+                  : 'bg-[#f5f0e2] text-[#111111] hover:bg-white'
+              }`}
+            >
+              {weeklyRecord ? (
+                <CheckCircle2 className="h-5 w-5 shrink-0 text-[#111111]" />
+              ) : (
+                <Medal className="h-5 w-5 shrink-0 text-[#2b56a3]" />
+              )}
+              <span className="font-display truncate text-[10px] leading-none font-extrabold tracking-tight uppercase sm:text-[11px]">
+                Weekly
+              </span>
+            </button>
+
+            {/* 3. 60s Blitz */}
+            <button
+              type="button"
+              onClick={onStartBlitz}
+              aria-label={`60s Blitz Arcade Rush${blitzBestWalls > 0 ? `, best ${blitzBestWalls} walls` : ''}`}
+              title={`60s Blitz — ${blitzBestWalls > 0 ? `Best ${blitzBestWalls} walls` : 'Arcade Rush'}`}
+              className="relative flex cursor-pointer flex-col items-center justify-center gap-1 border-2 border-[#111111] bg-[#d6302a] px-1 py-2 text-[#faf6ea] shadow-[3px_3px_0_#111111] transition hover:-translate-y-0.5 hover:bg-[#c02621] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none sm:py-2.5"
+            >
+              <Zap className="h-5 w-5 shrink-0 fill-[#e4b43c] text-[#e4b43c]" />
+              <span className="font-display truncate text-[10px] leading-none font-black tracking-tight uppercase sm:text-[11px]">
+                60s Blitz
+              </span>
+            </button>
+
+            {/* 4. Endless */}
             <button
               type="button"
               onClick={onStartEndless}
-              className="font-display col-span-2 flex cursor-pointer items-center justify-center gap-1.5 border-2 border-[#111111] bg-[#2b56a3] px-3 py-2 text-xs font-extrabold tracking-wide text-[#faf6ea] uppercase shadow-[3px_3px_0_#111111] transition hover:-translate-y-0.5 hover:bg-[#244a8e] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none whitespace-nowrap sm:text-sm"
-              title="Play Endless Generated Walls"
+              aria-label={`Endless Mode, Wall #${progress.endlessCurrentLevel}`}
+              title={`Endless — ${progress.endlessBestStreak > 0 ? `Best #${progress.endlessBestStreak}` : `Wall #${progress.endlessCurrentLevel}`}`}
+              className="relative flex cursor-pointer flex-col items-center justify-center gap-1 border-2 border-[#111111] bg-[#2b56a3] px-1 py-2 text-[#faf6ea] shadow-[3px_3px_0_#111111] transition hover:-translate-y-0.5 hover:bg-[#244a8e] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none sm:py-2.5"
             >
-              <InfinityIcon className="h-4 w-4 shrink-0" />
-              <span>Endless</span>
+              <InfinityIcon className="h-5 w-5 shrink-0" />
+              <span className="font-display truncate text-[10px] leading-none font-black tracking-tight uppercase sm:text-[11px]">
+                Endless
+              </span>
             </button>
           </div>
 
@@ -680,13 +711,13 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             <button
               type="button"
               onClick={() => onStartPack(selectedTheme)}
-              className={`play-btn-shine font-display mt-8 flex w-full cursor-pointer items-center justify-center gap-2.5 border-[3px] border-[#111111] px-6 py-3.5 text-lg font-black tracking-wider uppercase shadow-[5px_5px_0_#111111] transition hover:-translate-y-0.5 active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0_#111111] whitespace-nowrap sm:mt-9 ${PLAY_BUTTON_THEME[theme.visualBase]}`}
+              className={`play-btn-shine font-display mt-8 flex w-full cursor-pointer items-center justify-center gap-2.5 border-[3px] border-[#111111] px-6 py-3.5 text-lg font-black tracking-wider uppercase shadow-[5px_5px_0_#111111] transition hover:-translate-y-0.5 active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0_#111111] whitespace-nowrap sm:mt-11 ${PLAY_BUTTON_THEME[theme.visualBase]}`}
             >
               <Play className="relative z-10 h-5 w-5 fill-current" />
               <span className="relative z-10">Play {theme.shortName}</span>
             </button>
           ) : (
-            <div className="mt-8 w-full sm:mt-9">
+            <div className="mt-8 w-full sm:mt-11">
               <button
                 type="button"
                 onClick={() => {

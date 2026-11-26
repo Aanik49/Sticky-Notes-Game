@@ -5,12 +5,15 @@ import {
   Award,
   BookOpen,
   Calendar,
+  Check,
   CheckCircle2,
+  Download,
   FlaskConical,
   Home,
   Infinity as InfinityIcon,
   Layers,
   Lock,
+  Medal,
   Music,
   Palette,
   Play,
@@ -24,10 +27,13 @@ import {
   Volume2,
   VolumeX,
   X,
+  Zap,
 } from 'lucide-react';
 import { sound } from '../game/audio';
 import {
   formatDailyDateLabel,
+  formatWeekLabel,
+  getCurrentWeekKey,
   getHighestUnlockedPack,
   getModeForPack,
   getPackUnlockRequirement,
@@ -39,7 +45,9 @@ import {
   THEMES,
 } from '../game/levels';
 import { ACHIEVEMENTS, PAPER_STYLES } from '../game/mastery';
+import { downloadVictoryPoster, getThemePosterAccent } from '../game/poster';
 import {
+  BlitzRunRecord,
   ClassicThemeId,
   GameMode,
   LevelDef,
@@ -119,6 +127,8 @@ interface LevelPickerModalProps {
   progress: SavedProgress;
   onSelectLevel: (level: LevelDef) => void;
   onSelectDaily: () => void;
+  onSelectWeekly: () => void;
+  onSelectBlitz: () => void;
   onSelectEndless: (themeId: ThemeId) => void;
   onClose: () => void;
 }
@@ -129,6 +139,8 @@ export const LevelPickerModal: React.FC<LevelPickerModalProps> = ({
   progress,
   onSelectLevel,
   onSelectDaily,
+  onSelectWeekly,
+  onSelectBlitz,
   onSelectEndless,
   onClose,
 }) => {
@@ -140,6 +152,8 @@ export const LevelPickerModal: React.FC<LevelPickerModalProps> = ({
   const levels = PACK_LEVELS[viewingPack];
   const todayKey = getTodayDateKey();
   const todayDailyRecord = progress.dailyRecords[todayKey];
+  const weekKey = getCurrentWeekKey();
+  const weekCleared = Boolean(progress.weeklyRecords?.[weekKey]);
   const clearedCount = levels.filter((l) => Boolean(progress.records[l.id])).length;
   const viewingUnlocked = isPackUnlocked(viewingPack, progress.records);
   const unlockReq = getPackUnlockRequirement(viewingPack, progress.records);
@@ -380,28 +394,56 @@ export const LevelPickerModal: React.FC<LevelPickerModalProps> = ({
           </div>
         </div>
 
-        {/* Footer: Daily Puzzle & Endless Mode Quick Launch (Pinned) */}
-        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t-2 border-[#111111] bg-[#ece5d2] px-4 py-3 sm:px-5">
+        {/* Footer: Special Modes Quick Launch (Daily, Weekly, 60s Blitz, Endless) */}
+        <div className="grid shrink-0 grid-cols-2 gap-2 border-t-2 border-[#111111] bg-[#ece5d2] px-4 py-2.5 sm:grid-cols-4 sm:px-5">
           <button
             type="button"
             onClick={() => {
               sound.playClick();
               onSelectDaily();
             }}
-            className={`font-display flex cursor-pointer items-center gap-1.5 border-2 border-[#111111] px-3 py-1.5 text-xs font-extrabold uppercase shadow-[2px_2px_0_#111111] transition hover:-translate-y-0.5 whitespace-nowrap ${
+            className={`font-display flex cursor-pointer items-center justify-center gap-1.5 border-2 border-[#111111] px-2.5 py-1.5 text-[11px] font-extrabold uppercase shadow-[2px_2px_0_#111111] transition hover:-translate-y-0.5 whitespace-nowrap ${
               todayDailyRecord
                 ? 'bg-[#e4b43c] text-[#111111]'
                 : 'bg-[#faf6ea] text-[#111111] hover:bg-white'
             }`}
           >
             {todayDailyRecord?.dailyMissionCompleted ? (
-              <DailyRewardIcon className="h-4 w-4 shrink-0" />
+              <DailyRewardIcon className="h-3.5 w-3.5 shrink-0" />
             ) : todayDailyRecord ? (
-              <CheckCircle2 className="h-3.5 w-3.5 text-[#111111]" />
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-[#111111]" />
             ) : (
-              <Calendar className="h-3.5 w-3.5 text-[#d6302a]" />
+              <Calendar className="h-3.5 w-3.5 shrink-0 text-[#d6302a]" />
             )}
-            <span>Daily · {formatDailyDateLabel(todayKey)}</span>
+            <span className="truncate">Daily · {formatDailyDateLabel(todayKey)}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              sound.playClick();
+              onSelectWeekly();
+            }}
+            className={`font-display flex cursor-pointer items-center justify-center gap-1.5 border-2 border-[#111111] px-2.5 py-1.5 text-[11px] font-extrabold uppercase shadow-[2px_2px_0_#111111] transition hover:-translate-y-0.5 whitespace-nowrap ${
+              weekCleared
+                ? 'bg-[#e4b43c] text-[#111111]'
+                : 'bg-[#faf6ea] text-[#111111] hover:bg-white'
+            }`}
+          >
+            <Medal className="h-3.5 w-3.5 shrink-0 text-[#2b56a3]" />
+            <span className="truncate">{formatWeekLabel(weekKey)}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              sound.playClick();
+              onSelectBlitz();
+            }}
+            className="font-display flex cursor-pointer items-center justify-center gap-1.5 border-2 border-[#111111] bg-[#d6302a] px-2.5 py-1.5 text-[11px] font-extrabold text-[#faf6ea] uppercase shadow-[2px_2px_0_#111111] transition hover:-translate-y-0.5 hover:bg-[#c02621] whitespace-nowrap"
+          >
+            <Zap className="h-3.5 w-3.5 shrink-0 fill-current" />
+            <span>60s Blitz</span>
           </button>
 
           <button
@@ -413,9 +455,9 @@ export const LevelPickerModal: React.FC<LevelPickerModalProps> = ({
                 : getHighestUnlockedPack(progress.records, viewingMode);
               onSelectEndless(endlessTheme);
             }}
-            className="font-display flex cursor-pointer items-center gap-1.5 border-2 border-[#111111] bg-[#2b56a3] px-3 py-1.5 text-xs font-extrabold text-[#faf6ea] uppercase shadow-[2px_2px_0_#111111] transition hover:-translate-y-0.5 hover:bg-[#244a8e] whitespace-nowrap"
+            className="font-display flex cursor-pointer items-center justify-center gap-1.5 border-2 border-[#111111] bg-[#2b56a3] px-2.5 py-1.5 text-[11px] font-extrabold text-[#faf6ea] uppercase shadow-[2px_2px_0_#111111] transition hover:-translate-y-0.5 hover:bg-[#244a8e] whitespace-nowrap"
           >
-            <InfinityIcon className="h-3.5 w-3.5" />
+            <InfinityIcon className="h-3.5 w-3.5 shrink-0" />
             <span>Endless #{progress.endlessCurrentLevel}</span>
           </button>
         </div>
@@ -616,38 +658,80 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   onOpenLevels,
   onOpenArchive,
 }) => {
+  const [posterSaved, setPosterSaved] = useState(false);
+
   const unlockedStampDefs = newlyUnlockedAchievements
     .map((id) => ACHIEVEMENTS.find((a) => a.id === id))
     .filter((a): a is NonNullable<typeof a> => Boolean(a));
-  const headline = level.isDaily
-    ? 'Daily Wall Cleared'
-    : starsEarned === 3
-      ? 'Spotless Peel'
-      : starsEarned === 2
-        ? 'Wall Cleared'
-        : 'All Notes Peeled';
 
-  const subtitle = level.isDaily
-    ? dailyStreak > 1
-      ? `Daily streak: ${dailyStreak} days in a row. Come back tomorrow for a fresh wall!`
-      : 'Today’s puzzle is complete! Come back tomorrow for a brand-new wall.'
-    : starsEarned === 3
-      ? 'Zero blocked taps — crisp order from start to finish.'
-      : starsEarned === 2
-        ? 'Clean clear with only a bump or two along the way.'
-        : 'Board cleared! Replay with zero bumps to earn 3 stars.';
+  const isWeeklyFinish = Boolean(level.isWeekly);
+
+  const headline = isWeeklyFinish
+    ? 'Exhibition Cleared'
+    : level.isDaily
+      ? 'Daily Wall Cleared'
+      : starsEarned === 3
+        ? 'Spotless Peel'
+        : starsEarned === 2
+          ? 'Wall Cleared'
+          : 'All Notes Peeled';
+
+  const subtitle = isWeeklyFinish
+    ? `All 3 gauntlet stages conquered with ${bumps}/${MAX_BUMPS} shared bumps!`
+    : level.isDaily
+      ? dailyStreak > 1
+        ? `Daily streak: ${dailyStreak} days in a row. Come back tomorrow for a fresh wall!`
+        : 'Today’s puzzle is complete! Come back tomorrow for a brand-new wall.'
+      : starsEarned === 3
+        ? 'Zero blocked taps — crisp order from start to finish.'
+        : starsEarned === 2
+          ? 'Clean clear with only a bump or two along the way.'
+          : 'Board cleared! Replay with zero bumps to earn 3 stars.';
 
   const nextLabel = newlyUnlockedPack
     ? `Play ${THEMES[newlyUnlockedPack].shortName}`
-    : level.isDaily
-      ? 'Play Endless'
-      : level.isEndless
-        ? `Endless #${(level.endlessNumber ?? 1) + 1}`
-        : hasNextLevelInPack
-          ? 'Next Wall'
-          : nextPackUnlocked
-            ? 'Next Pack'
-            : 'Next Unfinished';
+    : isWeeklyFinish
+      ? 'Play 60s Blitz'
+      : level.isDaily
+        ? 'Play Endless'
+        : level.isEndless
+          ? `Endless #${(level.endlessNumber ?? 1) + 1}`
+          : hasNextLevelInPack
+            ? 'Next Wall'
+            : nextPackUnlocked
+              ? 'Next Pack'
+              : 'Next Unfinished';
+
+  const handleSavePoster = async () => {
+    sound.playClick();
+    const packTheme = THEMES[level.packId];
+    const ok = await downloadVictoryPoster({
+      kind: isWeeklyFinish ? 'weekly' : 'wall',
+      headline,
+      subtitle,
+      levelTitle: isWeeklyFinish
+        ? `Weekly Exhibition · ${formatWeekLabel(level.weeklyKey ?? getCurrentWeekKey())}`
+        : level.title,
+      packStamp: isWeeklyFinish ? 'EXHIBITION · 3-STAGE GAUNTLET' : packTheme.boardStamp,
+      accentHex: getThemePosterAccent(packTheme),
+      stars: starsEarned,
+      sheetsPeeled,
+      bumps,
+      timeLabel: timeAttackActive ? formatStopwatchMs(elapsedMs) : formatTime(elapsedSec),
+      maxCombo,
+      badgeText: isWeeklyFinish
+        ? 'EXHIBITION LAUREATE STAMP'
+        : dailyMissionCompleted && level.dailyMission
+          ? `DAILY SEAL · ${level.dailyMission.rewardTitle}`
+          : starsEarned === 3
+            ? 'SPOTLESS 3-STAR CLEAR'
+            : undefined,
+    });
+    if (ok) {
+      setPosterSaved(true);
+      window.setTimeout(() => setPosterSaved(false), 2200);
+    }
+  };
 
   return (
     <div
@@ -877,11 +961,11 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
               <ArrowRight className="h-4 w-4 shrink-0" />
             </button>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={onHome}
-                className="font-display flex h-11 min-w-0 cursor-pointer items-center justify-center gap-1.5 border-2 border-[#111111] bg-[#faf6ea] px-3 text-sm font-extrabold uppercase shadow-[3px_3px_0_#111111] transition hover:bg-white active:translate-x-[1px] active:translate-y-[1px] whitespace-nowrap"
+                className="font-display flex h-11 min-w-0 cursor-pointer items-center justify-center gap-1 border-2 border-[#111111] bg-[#faf6ea] px-2 text-xs font-extrabold uppercase shadow-[3px_3px_0_#111111] transition hover:bg-white active:translate-x-[1px] active:translate-y-[1px] whitespace-nowrap sm:text-sm"
               >
                 <Home className="h-4 w-4 shrink-0" />
                 <span>Home</span>
@@ -890,10 +974,33 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
               <button
                 type="button"
                 onClick={onReplay}
-                className="font-display flex h-11 min-w-0 cursor-pointer items-center justify-center gap-1.5 border-2 border-[#111111] bg-[#faf6ea] px-3 text-sm font-extrabold uppercase shadow-[3px_3px_0_#111111] transition hover:bg-white active:translate-x-[1px] active:translate-y-[1px] whitespace-nowrap"
+                className="font-display flex h-11 min-w-0 cursor-pointer items-center justify-center gap-1 border-2 border-[#111111] bg-[#faf6ea] px-2 text-xs font-extrabold uppercase shadow-[3px_3px_0_#111111] transition hover:bg-white active:translate-x-[1px] active:translate-y-[1px] whitespace-nowrap sm:text-sm"
               >
                 <RotateCcw className="h-4 w-4 shrink-0" />
                 <span>Replay</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSavePoster}
+                className={`font-display flex h-11 min-w-0 cursor-pointer items-center justify-center gap-1 border-2 border-[#111111] px-2 text-xs font-extrabold uppercase shadow-[3px_3px_0_#111111] transition active:translate-x-[1px] active:translate-y-[1px] whitespace-nowrap sm:text-sm ${
+                  posterSaved
+                    ? 'bg-[#10b981] text-[#111111]'
+                    : 'bg-[#e4b43c] text-[#111111] hover:bg-[#ecc252]'
+                }`}
+                title="Download framed Bauhaus victory art print PNG"
+              >
+                {posterSaved ? (
+                  <>
+                    <Check className="h-4 w-4 shrink-0" />
+                    <span>Saved!</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 shrink-0" />
+                    <span>Poster</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -1007,6 +1114,243 @@ export const FailedModal: React.FC<FailedModalProps> = ({
           >
             Browse all packs & walls
           </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* =========================================================================
+   5. 60-SECOND BLITZ RESULTS & PERSONAL BEST LEADERBOARD MODAL
+   ========================================================================= */
+interface BlitzResultModalProps {
+  run: BlitzRunRecord;
+  leaderboard: BlitzRunRecord[];
+  isNewBest: boolean;
+  newlyUnlockedAchievements: string[];
+  onPlayAgain: () => void;
+  onHome: () => void;
+  onOpenArchive?: (tab: StudioArchiveTab) => void;
+}
+
+export const BlitzResultModal: React.FC<BlitzResultModalProps> = ({
+  run,
+  leaderboard,
+  isNewBest,
+  newlyUnlockedAchievements,
+  onPlayAgain,
+  onHome,
+  onOpenArchive,
+}) => {
+  const [posterSaved, setPosterSaved] = useState(false);
+
+  const unlockedStampDefs = newlyUnlockedAchievements
+    .map((id) => ACHIEVEMENTS.find((a) => a.id === id))
+    .filter((a): a is NonNullable<typeof a> => Boolean(a));
+
+  const handleSavePoster = async () => {
+    sound.playClick();
+    const ok = await downloadVictoryPoster({
+      kind: 'blitz',
+      headline: isNewBest ? 'New Blitz Record' : 'Blitz Complete',
+      subtitle: `${run.wallsCleared} walls cleared · ${run.spotlessWalls} spotless`,
+      levelTitle: '60-Second Blitz · Arcade Rush',
+      packStamp: 'ARCADE · 60-SECOND BLITZ',
+      accentHex: '#d6302a',
+      sheetsPeeled: run.sheetsPeeled,
+      timeLabel: '60.0s',
+      maxCombo: run.maxStreak,
+      wallsCleared: run.wallsCleared,
+      spotlessWalls: run.spotlessWalls,
+      bonusSecEarned: run.bonusSecEarned,
+      badgeText: isNewBest ? 'NEW PERSONAL BEST' : `+${run.bonusSecEarned}S BONUS EARNED`,
+    });
+    if (ok) {
+      setPosterSaved(true);
+      window.setTimeout(() => setPosterSaved(false), 2200);
+    }
+  };
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="60-Second Blitz results"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 sm:p-4"
+    >
+      <div className="combo-pop relative flex max-h-[calc(100dvh-24px)] w-full max-w-sm flex-col overflow-hidden border-[3px] border-[#111111] bg-[#f5f0e2] text-center text-[#111111] shadow-[8px_8px_0_#111111]">
+        {/* Top Bauhaus Blitz Color Band */}
+        <div aria-hidden="true" className="grid h-3 shrink-0 grid-cols-3 border-b-2 border-[#111111]">
+          <div className="border-r-2 border-[#111111] bg-[#d6302a]" />
+          <div className="border-r-2 border-[#111111] bg-[#e4b43c]" />
+          <div className="bg-[#111111]" />
+        </div>
+
+        <div className="overflow-y-auto p-5 sm:p-6">
+          <div className="font-mono-num flex items-center justify-center gap-1.5 text-xs font-extrabold tracking-widest text-[#d6302a] uppercase">
+            <Zap className="h-3.5 w-3.5 fill-current" />
+            <span>60-Second Blitz · Time Up</span>
+          </div>
+
+          <div className="mt-2 flex flex-col items-center">
+            <div className="font-mono-num text-5xl font-black leading-none text-[#111111]">
+              {run.wallsCleared}
+            </div>
+            <div className="font-display mt-1 text-base font-black tracking-wide uppercase">
+              {run.wallsCleared === 1 ? 'Wall Cleared' : 'Walls Cleared'}
+            </div>
+            {isNewBest && run.wallsCleared > 0 && (
+              <div className="font-mono-num mt-1.5 inline-flex items-center gap-1 border-2 border-[#111111] bg-[#e4b43c] px-2.5 py-0.5 text-[11px] font-black uppercase shadow-[2px_2px_0_#111111]">
+                <Trophy className="h-3 w-3" />
+                <span>New Personal Best!</span>
+              </div>
+            )}
+          </div>
+
+          {/* Newly Unlocked Stamp Callout */}
+          {unlockedStampDefs.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                sound.playClick();
+                onOpenArchive?.('gallery');
+              }}
+              className="mt-3 flex w-full cursor-pointer items-center gap-3 border-2 border-[#111111] bg-[#faf6ea] px-3 py-2 text-left shadow-[3px_3px_0_#111111] transition hover:bg-white"
+            >
+              <BauhausPosterStamp
+                motif={unlockedStampDefs[0].motif}
+                unlocked={true}
+                className="h-9 w-9 shrink-0"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="font-mono-num text-[10px] font-extrabold text-[#d6302a] uppercase">
+                  Poster Stamp Unlocked
+                </div>
+                <div className="font-display truncate text-sm font-black uppercase">
+                  {unlockedStampDefs[0].title}
+                </div>
+              </div>
+              <span className="font-display shrink-0 text-[10px] font-black uppercase underline">
+                View
+              </span>
+            </button>
+          )}
+
+          {/* 4-Column Blitz Stats */}
+          <div className="my-3.5 grid grid-cols-4 divide-x-2 divide-[#111111] border-y-2 border-[#111111] py-2.5">
+            <div>
+              <div className="text-[10px] font-extrabold uppercase opacity-60">Sheets</div>
+              <div className="font-mono-num mt-0.5 text-base font-extrabold">
+                {run.sheetsPeeled}
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] font-extrabold uppercase opacity-60">Spotless</div>
+              <div className="font-mono-num mt-0.5 text-base font-extrabold text-[#2b56a3]">
+                {run.spotlessWalls}
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] font-extrabold uppercase opacity-60">Bonus</div>
+              <div className="font-mono-num mt-0.5 text-base font-extrabold text-emerald-700">
+                +{run.bonusSecEarned}s
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] font-extrabold uppercase opacity-60">Streak</div>
+              <div className="font-mono-num mt-0.5 text-base font-extrabold">
+                ×{run.maxStreak}
+              </div>
+            </div>
+          </div>
+
+          {/* Personal Best Leaderboard (Top 5) */}
+          <div className="mb-4 border-2 border-[#111111] bg-[#faf6ea] text-left shadow-[3px_3px_0_#111111]">
+            <div className="flex items-center justify-between border-b-2 border-[#111111] bg-[#111111] px-3 py-1.5 text-[#e4b43c]">
+              <span className="font-display flex items-center gap-1.5 text-[11px] font-black tracking-wider uppercase">
+                <Trophy className="h-3.5 w-3.5" />
+                Personal Best Board
+              </span>
+              <span className="font-mono-num text-[10px] font-bold">TOP 5</span>
+            </div>
+            <div className="divide-y divide-[#111111]/15">
+              {leaderboard.map((entry, idx) => {
+                const isThisRun = entry.id === run.id;
+                return (
+                  <div
+                    key={entry.id}
+                    className={`flex items-center justify-between gap-2 px-3 py-1.5 text-xs ${
+                      isThisRun ? 'bg-[#e4b43c]/45 font-black' : ''
+                    }`}
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span
+                        className={`font-mono-num flex h-5 w-5 shrink-0 items-center justify-center border border-[#111111] text-[10px] font-black ${
+                          idx === 0 ? 'bg-[#e4b43c] text-[#111111]' : 'bg-[#f5f0e2]'
+                        }`}
+                      >
+                        {idx + 1}
+                      </span>
+                      <span className="font-display truncate font-extrabold uppercase">
+                        {entry.wallsCleared} {entry.wallsCleared === 1 ? 'Wall' : 'Walls'}
+                      </span>
+                      <span className="font-mono-num text-[10px] font-bold opacity-65">
+                        {entry.sheetsPeeled} sh · ×{entry.maxStreak}
+                      </span>
+                    </div>
+                    <span className="font-mono-num shrink-0 text-[10px] font-bold opacity-75">
+                      {isThisRun ? 'NOW' : entry.dateKey.slice(5)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={onPlayAgain}
+              className="font-display flex h-12 w-full cursor-pointer items-center justify-center gap-2 border-2 border-[#111111] bg-[#d6302a] px-4 text-base font-black tracking-wide text-[#faf6ea] uppercase shadow-[4px_4px_0_#111111] transition hover:bg-[#c02621] active:translate-x-[1px] active:translate-y-[1px]"
+            >
+              <Zap className="h-4 w-4 fill-current" />
+              <span>Play Blitz Again</span>
+            </button>
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={onHome}
+                className="font-display flex h-11 cursor-pointer items-center justify-center gap-1.5 border-2 border-[#111111] bg-[#faf6ea] px-3 text-sm font-extrabold uppercase shadow-[3px_3px_0_#111111] transition hover:bg-white active:translate-x-[1px] active:translate-y-[1px]"
+              >
+                <Home className="h-4 w-4 shrink-0" />
+                <span>Home</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSavePoster}
+                className={`font-display flex h-11 cursor-pointer items-center justify-center gap-1.5 border-2 border-[#111111] px-3 text-sm font-extrabold uppercase shadow-[3px_3px_0_#111111] transition active:translate-x-[1px] active:translate-y-[1px] ${
+                  posterSaved
+                    ? 'bg-[#10b981] text-[#111111]'
+                    : 'bg-[#e4b43c] text-[#111111] hover:bg-[#ecc252]'
+                }`}
+              >
+                {posterSaved ? (
+                  <>
+                    <Check className="h-4 w-4 shrink-0" />
+                    <span>Saved PNG!</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 shrink-0" />
+                    <span>Save Poster</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

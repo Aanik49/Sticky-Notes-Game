@@ -802,6 +802,147 @@ export function createDailyLevel(dateKey: string = getTodayDateKey()): LevelDef 
 }
 
 /* =========================================================================
+   60-SECOND BLITZ (ARCADE RUSH MODE — BITE-SIZED 3×3 & 4×4 WALLS)
+   ========================================================================= */
+
+export function createBlitzLevel(wallNumber: number, runSeed: number): LevelDef {
+  const safeNum = Math.max(1, wallNumber);
+  const seed = ((runSeed * 31 + safeNum * 9973) >>> 0) || 1337;
+  const packId = CLASSIC_THEME_ORDER[(safeNum + (runSeed % 6)) % CLASSIC_THEME_ORDER.length];
+
+  // Walls 1-3 are snappy 3x3 warmup bursts; Wall 4+ alternate crisp 3x3 and 4x4 boards
+  const isThreeByThree = safeNum <= 3 || (safeNum % 4 === 0 && safeNum <= 12);
+  const size = isThreeByThree ? 3 : 4;
+  const targetNotes = isThreeByThree
+    ? Math.min(8, 6 + (safeNum % 3))
+    : Math.min(13, 9 + Math.floor((safeNum - 3) / 2));
+  const obstacleCount = !isThreeByThree && safeNum >= 6 ? 1 : 0;
+  const doubleCount = !isThreeByThree && safeNum >= 8 ? 1 : 0;
+
+  const generated = generateSolvableLevel({
+    seed,
+    id: `blitz-${runSeed}-${safeNum}`,
+    mode: 'classic',
+    packId,
+    indexInPack: safeNum - 1,
+    title: `Blitz · Wall #${safeNum}`,
+    difficulty: safeNum <= 3 ? 'Warmup' : safeNum <= 7 ? 'Clever' : 'Tricky',
+    rows: size,
+    cols: size,
+    targetNotes,
+    obstacleCount,
+    doubleCount,
+  });
+
+  return {
+    ...generated,
+    isBlitz: true,
+    blitzWallNumber: safeNum,
+  };
+}
+
+/* =========================================================================
+   WEEKLY BAUHAUS EXHIBITION (CURATED 3-STAGE GAUNTLET)
+   Stage 1: Classic Warmup -> Stage 2: Mixed Studio -> Stage 3: Studio Lab Boss
+   ========================================================================= */
+
+export function getCurrentWeekKey(now: Date = new Date()): string {
+  // ISO-8601 week number calculation
+  const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil(((d.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7);
+  return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+}
+
+export function formatWeekLabel(weekKey: string): string {
+  const match = weekKey.match(/W(\d+)/);
+  return match ? `Week ${Number(match[1])}` : weekKey;
+}
+
+export function createWeeklyExhibitionStages(
+  weekKey: string = getCurrentWeekKey()
+): [LevelDef, LevelDef, LevelDef] {
+  const baseHash = hashDateKey(`bauhaus-weekly-exhibition:${weekKey}`);
+  const weekLabel = formatWeekLabel(weekKey);
+
+  // Stage 1: Classic Warmup (Crisp 4x4 Classic wall)
+  const stage1Pack = CLASSIC_THEME_ORDER[baseHash % CLASSIC_THEME_ORDER.length];
+  const stage1: LevelDef = {
+    ...generateSolvableLevel({
+      seed: (baseHash ^ 0x11a3) >>> 0,
+      id: `weekly-${weekKey}-s1`,
+      mode: 'classic',
+      packId: stage1Pack,
+      indexInPack: 0,
+      title: `${weekLabel} · Stage 1/3`,
+      difficulty: 'Clever',
+      rows: 4,
+      cols: 4,
+      targetNotes: 12,
+      obstacleCount: 1,
+      doubleCount: 1,
+    }),
+    isWeekly: true,
+    weeklyKey: weekKey,
+    weeklyStage: 1,
+    weeklyStageLabel: 'Classic Opening',
+  };
+
+  // Stage 2: Mixed Studio (4x4 with Tape Lock + Chain-Peel)
+  const stage2: LevelDef = {
+    ...generateSolvableLevel({
+      seed: (baseHash ^ 0x29f7) >>> 0,
+      id: `weekly-${weekKey}-s2`,
+      mode: 'lab',
+      packId: 'lab-tape',
+      indexInPack: 1,
+      title: `${weekLabel} · Stage 2/3`,
+      difficulty: 'Tricky',
+      rows: 4,
+      cols: 4,
+      targetNotes: 12,
+      obstacleCount: 1,
+      doubleCount: 1,
+      tapePairs: 1,
+      chainPairs: 1,
+    }),
+    isWeekly: true,
+    weeklyKey: weekKey,
+    weeklyStage: 2,
+    weeklyStageLabel: 'Mixed Studio',
+  };
+
+  // Stage 3: Studio Lab Boss Wall (5x5 featuring Taped + Pivot + Chain-Peel)
+  const stage3: LevelDef = {
+    ...generateSolvableLevel({
+      seed: (baseHash ^ 0x5c31) >>> 0,
+      id: `weekly-${weekKey}-s3`,
+      mode: 'lab',
+      packId: 'lab-master',
+      indexInPack: 2,
+      title: `${weekLabel} · Boss 3/3`,
+      difficulty: 'Master',
+      rows: 5,
+      cols: 5,
+      targetNotes: 15,
+      obstacleCount: 2,
+      doubleCount: 1,
+      tapePairs: 1,
+      pivotCount: 1,
+      chainPairs: 1,
+    }),
+    isWeekly: true,
+    weeklyKey: weekKey,
+    weeklyStage: 3,
+    weeklyStageLabel: 'Lab Boss Wall',
+  };
+
+  return [stage1, stage2, stage3];
+}
+
+/* =========================================================================
    PROGRESSIVE PACK UNLOCK RULES:
    - Classic: Fridge -> Cork -> Drafting -> Midnight -> Atelier -> Gallery
    - Studio Lab: Tape Lock, Pivot Grid & Chain Link open right away so players

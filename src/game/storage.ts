@@ -1,10 +1,12 @@
 import {
+  BlitzRunRecord,
   GameMode,
   LevelRecord,
   LifetimeStats,
   PaperStyleId,
   SavedProgress,
   ThemeId,
+  WeeklyRecord,
 } from './types';
 
 const STORAGE_KEY = 'sticky_notes_puzzle_save_v1';
@@ -74,6 +76,8 @@ const DEFAULT_PROGRESS: SavedProgress = {
   unlockedAchievements: [],
   seenClassicTutorial: false,
   seenLabTutorial: false,
+  blitzLeaderboard: [],
+  weeklyRecords: {},
 };
 
 function sanitizeStats(
@@ -169,6 +173,21 @@ export function loadProgress(): SavedProgress {
         : [],
       seenClassicTutorial: Boolean(parsed.seenClassicTutorial),
       seenLabTutorial: Boolean(parsed.seenLabTutorial),
+      blitzLeaderboard: Array.isArray(parsed.blitzLeaderboard)
+        ? parsed.blitzLeaderboard
+            .filter(
+              (r): r is BlitzRunRecord =>
+                Boolean(r) &&
+                typeof r.id === 'string' &&
+                typeof r.wallsCleared === 'number' &&
+                typeof r.sheetsPeeled === 'number'
+            )
+            .slice(0, 5)
+        : [],
+      weeklyRecords:
+        parsed.weeklyRecords && typeof parsed.weeklyRecords === 'object'
+          ? (parsed.weeklyRecords as Record<string, WeeklyRecord>)
+          : {},
     };
   } catch {
     return {
@@ -267,5 +286,52 @@ export function applyDailyCompletion(
     },
     dailyStreak: nextStreak,
     lastDailyCompletedDate: nextLastDate,
+  };
+}
+
+export function recordBlitzRun(
+  prev: SavedProgress,
+  run: BlitzRunRecord
+): SavedProgress {
+  const combined = [...prev.blitzLeaderboard, run].sort((a, b) => {
+    if (b.wallsCleared !== a.wallsCleared) return b.wallsCleared - a.wallsCleared;
+    if (b.sheetsPeeled !== a.sheetsPeeled) return b.sheetsPeeled - a.sheetsPeeled;
+    return b.spotlessWalls - a.spotlessWalls;
+  });
+  return {
+    ...prev,
+    blitzLeaderboard: combined.slice(0, 5),
+  };
+}
+
+export function recordWeeklyCompletion(
+  prev: SavedProgress,
+  weekKey: string,
+  stars: 1 | 2 | 3,
+  bumps: number,
+  timeSec: number,
+  completedAt: string
+): SavedProgress {
+  const existing = prev.weeklyRecords[weekKey];
+  const merged: WeeklyRecord = existing
+    ? {
+        stars: Math.max(existing.stars, stars) as 1 | 2 | 3,
+        bestBumps: Math.min(existing.bestBumps, bumps),
+        bestTimeSec: Math.min(existing.bestTimeSec, timeSec),
+        completedAt: existing.completedAt || completedAt,
+      }
+    : {
+        stars,
+        bestBumps: bumps,
+        bestTimeSec: timeSec,
+        completedAt,
+      };
+
+  return {
+    ...prev,
+    weeklyRecords: {
+      ...prev.weeklyRecords,
+      [weekKey]: merged,
+    },
   };
 }

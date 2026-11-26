@@ -8,6 +8,7 @@ import {
   Star,
   Timer,
   X,
+  Zap,
 } from 'lucide-react';
 import { sound } from '../game/audio';
 import {
@@ -188,6 +189,29 @@ export const BauhausPosterStamp: React.FC<{
           <rect x="2" y="2" width="68" height="68" fill={blue} stroke={ink} strokeWidth="2" />
           <polygon points="12,56 12,24 27,38 36,18 45,38 60,24 60,56" fill={ochre} stroke={ink} strokeWidth="2.6" strokeLinejoin="miter" />
           <rect x="12" y="56" width="48" height="8" fill={red} stroke={ink} strokeWidth="2.4" />
+        </>
+      )}
+
+      {motif === 'exhibition-triad' && (
+        <>
+          <rect x="2" y="50" width="68" height="20" fill={ink} />
+          <rect x="8" y="24" width="16" height="26" fill={red} stroke={ink} strokeWidth="2.4" />
+          <circle cx="36" cy="34" r="11" fill={ochre} stroke={ink} strokeWidth="2.4" />
+          <polygon points="56,14 66,50 46,50" fill={blue} stroke={ink} strokeWidth="2.4" strokeLinejoin="miter" />
+          <rect x="12" y="56" width="48" height="6" fill={ochre} />
+        </>
+      )}
+
+      {motif === 'blitz-bolt' && (
+        <>
+          <rect x="2" y="2" width="68" height="68" fill={red} stroke={ink} strokeWidth="2" />
+          <polygon
+            points="42,8 18,38 34,38 26,64 54,32 38,32"
+            fill={ochre}
+            stroke={ink}
+            strokeWidth="2.8"
+            strokeLinejoin="miter"
+          />
         </>
       )}
     </svg>
@@ -403,7 +427,7 @@ export const StudioArchiveModal: React.FC<StudioArchiveModalProps> = ({
                     ×{summary.longestCleanStreak}
                   </div>
                   <div className="font-mono-num mt-0.5 text-[11px] font-bold opacity-65">
-                    Daily {summary.dailyStreak}d · Endless #{summary.endlessBestStreak}
+                    Daily {summary.dailyStreak}d · Weekly {summary.weeklyExhibitionsCleared} · Endless #{summary.endlessBestStreak}
                   </div>
                 </div>
 
@@ -471,6 +495,54 @@ export const StudioArchiveModal: React.FC<StudioArchiveModalProps> = ({
                   <div className="px-3.5 py-3 text-xs font-semibold opacity-70">
                     Toggle <span className="font-extrabold uppercase">Time Attack</span> above the
                     board and clear a wall to record your fastest times.
+                  </div>
+                )}
+              </div>
+
+              {/* 60-Second Blitz Personal Best Leaderboard */}
+              <div className="border-2 border-[#111111] bg-[#faf6ea] shadow-[3px_3px_0_#111111]">
+                <div className="flex items-center justify-between border-b-2 border-[#111111] bg-[#d6302a] px-3.5 py-2 text-[#faf6ea]">
+                  <div className="font-display flex items-center gap-1.5 text-xs font-black tracking-wider uppercase">
+                    <Zap className="h-3.5 w-3.5 fill-current" />
+                    <span>60-Second Blitz Leaderboard</span>
+                  </div>
+                  <span className="font-mono-num text-[10px] font-bold opacity-90">TOP 5</span>
+                </div>
+
+                {(progress.blitzLeaderboard ?? []).length > 0 ? (
+                  <div className="divide-y divide-[#111111]/20">
+                    {progress.blitzLeaderboard.map((run, idx) => (
+                      <div
+                        key={run.id}
+                        className="flex items-center justify-between gap-2 px-3.5 py-2 text-xs"
+                      >
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span
+                            className={`font-mono-num flex h-5 w-5 shrink-0 items-center justify-center border border-[#111111] text-[10px] font-black ${
+                              idx === 0
+                                ? 'bg-[#e4b43c] text-[#111111]'
+                                : 'bg-[#f5f0e2] text-[#111111]'
+                            }`}
+                          >
+                            {idx + 1}
+                          </span>
+                          <span className="font-display truncate font-black uppercase">
+                            {run.wallsCleared} {run.wallsCleared === 1 ? 'Wall' : 'Walls'}
+                          </span>
+                          <span className="font-mono-num shrink-0 text-[10px] font-bold opacity-65">
+                            {run.sheetsPeeled} sheets · ×{run.maxStreak}
+                          </span>
+                        </div>
+                        <span className="font-mono-num shrink-0 text-[10px] font-extrabold text-[#2b56a3]">
+                          {run.spotlessWalls} spotless
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="px-3.5 py-3 text-xs font-semibold opacity-70">
+                    Play <span className="font-extrabold uppercase">60s Blitz</span> to set your
+                    personal best rush score!
                   </div>
                 )}
               </div>

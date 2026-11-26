@@ -20,7 +20,7 @@ export type LabThemeId =
 
 export type ThemeId = ClassicThemeId | LabThemeId;
 
-export type GameScreen = 'TITLE_MENU' | 'PLAYING' | 'PAUSED' | 'VICTORY' | 'FAILED';
+export type GameScreen = 'TITLE_MENU' | 'PLAYING' | 'PAUSED' | 'VICTORY' | 'FAILED' | 'BLITZ_OVER';
 
 export const MAX_BUMPS = 5;
 
@@ -94,6 +94,12 @@ export interface LevelDef {
   isDaily?: boolean;
   dailyDateKey?: string;
   dailyMission?: DailyMission;
+  isBlitz?: boolean;
+  blitzWallNumber?: number;
+  isWeekly?: boolean;
+  weeklyKey?: string;
+  weeklyStage?: 1 | 2 | 3;
+  weeklyStageLabel?: string;
 }
 
 export interface ThemeMeta {
@@ -157,6 +163,23 @@ export interface LifetimeStats {
   packClearsCount: Record<ThemeId, number>;
 }
 
+export interface BlitzRunRecord {
+  id: string;
+  wallsCleared: number;
+  sheetsPeeled: number;
+  spotlessWalls: number;
+  maxStreak: number;
+  bonusSecEarned: number;
+  dateKey: string;
+}
+
+export interface WeeklyRecord {
+  stars: 1 | 2 | 3;
+  bestBumps: number;
+  bestTimeSec: number;
+  completedAt: string;
+}
+
 export interface SavedProgress {
   records: Record<string, LevelRecord>;
   dailyRecords: Record<string, LevelRecord>;
@@ -175,6 +198,8 @@ export interface SavedProgress {
   unlockedAchievements: string[];
   seenClassicTutorial: boolean;
   seenLabTutorial: boolean;
+  blitzLeaderboard: BlitzRunRecord[];
+  weeklyRecords: Record<string, WeeklyRecord>;
 }
 
 export interface ParticleBurstRequest {
